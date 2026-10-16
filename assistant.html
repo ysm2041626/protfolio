@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI教师工作台</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f4f6f9;color:#2c3e50;font-size:14px}
+header{background:#fff;border-bottom:1px solid #e5e9f0;padding:10px 22px;display:flex;align-items:center;gap:22px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+header h1{font-size:16px;color:#1a2b45}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:none;background:transparent;padding:7px 14px;font-size:13px;color:#5a6b82;cursor:pointer;border-radius:6px}
+nav button:hover{background:#f0f3f8}
+nav button.active{background:#e8f0fe;color:#2a6df4;font-weight:600}
+main{max-width:1240px;margin:16px auto;padding:0 20px}
+.view{display:none}.view.active{display:block}
+.card{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 3px rgba(20,40,80,.05);margin-bottom:14px}
+.card h2{font-size:15px;margin-bottom:10px;color:#1a2b45}
+.card h3{font-size:13px;margin:12px 0 6px;color:#2c3e50;font-weight:600}
+.row{display:grid;gap:10px}
+.row-3{grid-template-columns:repeat(3,1fr)}.row-4{grid-template-columns:repeat(4,1fr)}.row-5{grid-template-columns:repeat(5,1fr)}
+.stat{background:#f7f9fc;border-radius:10px;padding:10px 14px}
+.stat .lbl{font-size:12px;color:#7a8699}
+.stat .val{font-size:19px;font-weight:700;color:#1a2b45;margin-top:4px;word-break:break-all}
+.stat .sub{font-size:11px;color:#9aa4b2;margin-top:3px}
+.form-row{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}
+.form-row label{display:flex;flex-direction:column;font-size:12px;color:#5a6b82;gap:4px}
+input,select,textarea{padding:7px 10px;border:1px solid #d6dbe5;border-radius:7px;font-size:13px;background:#fff;color:#2c3e50;outline:none;font-family:inherit;min-width:110px}
+input:focus,select:focus{border-color:#2a6df4}
+.btn{background:#2a6df4;color:#fff;border:none;padding:8px 16px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:500}
+.btn:hover{background:#1d5be0}
+.btn.ghost{background:#eef2f8;color:#2a6df4}
+.btn.ghost:hover{background:#e2e9f5}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f7f9fc;color:#5a6b82;font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid #e5e9f0;position:sticky;top:0}
+td{padding:8px 10px;border-bottom:1px solid #f0f3f8}
+tr:last-child td{border-bottom:none}
+.scroll{max-height:400px;overflow:auto;border-radius:6px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px}
+.tag.ok{background:#e7f8ef;color:#1d9d5c}
+.tag.warn{background:#fff5e6;color:#d38600}
+.tag.bad{background:#fdecec;color:#d93636}
+.tag.info{background:#e8f0fe;color:#2a6df4}
+.empty{color:#9aa4b2;font-size:13px;text-align:center;padding:20px 0}
+.hint{color:#7a8699;font-size:12px;margin-top:6px;line-height:1.7}
+.chart{width:100%;height:300px}
+.chart-lg{width:100%;height:400px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:10px 22px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .25s;z-index:9999;pointer-events:none;max-width:80vw;white-space:pre-line}
+.toast.show{opacity:.95}
+.tabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid #e5e9f0;flex-wrap:wrap}
+.tabs button{border:none;background:transparent;padding:9px 16px;font-size:13px;color:#5a6b82;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.active{color:#2a6df4;font-weight:600;border-bottom-color:#2a6df4}
+.tab{display:none}.tab.active{display:block}
+.advice{background:#fff9ec;border-left:3px solid #f5b400;padding:10px 14px;border-radius:6px;margin-bottom:8px;font-size:13px;line-height:1.7;color:#6b5300}
+.kp-block{border:1px solid #eef1f6;border-radius:10px;padding:14px 18px;margin-bottom:10px}
+.kp-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.kp-name{font-size:15px;font-weight:600}
+.rec-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rec-item{background:#f7f9fc;border-radius:8px;padding:12px;font-size:13px}
+.rec-item .meta{font-size:12px;color:#909399;margin-bottom:5px;display:flex;justify-content:space-between}
+.letter{background:#f7f9fc;border-radius:10px;padding:20px 26px;line-height:2;font-size:14px;color:#2c3e50}
+.letter p{margin:8px 0}
+.letter .greeting{font-weight:600}
+.letter .closing{margin-top:14px;color:#5a6b82}
+.chip{display:inline-block;padding:3px 10px;border-radius:14px;font-size:12px;background:#eef2f8;color:#5a6b82;cursor:pointer;margin:3px;user-select:none;border:1px solid transparent}
+.chip.on{background:#e8f0fe;color:#2a6df4;border-color:#a8c5f8;font-weight:600}
+details{margin:6px 0}
+details summary{cursor:pointer;color:#2a6df4;font-size:13px;user-select:none}
+.section-title{font-size:13px;font-weight:600;color:#2a6df4;margin:12px 0 6px;padding-left:8px;border-left:3px solid #2a6df4}
+.explain-p{font-size:13px;line-height:1.9;color:#303133}
+.flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+@media(max-width:900px){.row-4,.row-5{grid-template-columns:repeat(2,1fr)}.rec-list{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📚 AI教师工作台</h1>
+  <nav>
+    <button data-view="home" class="active">工作台</button>
+    <button data-view="scores">成绩分析</button>
+    <button data-view="wrong">错题分析</button>
+    <button data-view="ai">智能推荐</button>
+    <button data-view="report">报告中心</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ========== 工作台 ========== -->
+<section class="view active" id="view-home">
+  <div class="card">
+    <h2>数据概览</h2>
+    <div class="row row-4" id="ov-stats"></div>
+  </div>
+  <div class="card">
+    <h2>数据导入</h2>
+    <p class="hint">成绩表：<b>学号、姓名、成绩</b>；错题表：<b>学号、姓名、题号、知识点、题干、得分、满分</b>。支持 .xlsx / .xls。</p>
+    <div class="form-row">
+      <label>考试名称<input id="imp-exam" placeholder="如 期中考试"></label>
+      <label>科目<input id="imp-subject" placeholder="如 数学"></label>
+      <label>日期<input id="imp-date" placeholder="2025-04-20"></label>
+      <label>班级<input id="imp-class" placeholder="如 七年级1班"></label>
+      <label>满分<input id="imp-full" type="number" value="100" style="min-width:80px"></label>
+    </div>
+    <div class="form-row">
+      <input type="file" id="f-scores" accept=".xlsx,.xls" style="display:none">
+      <input type="file" id="f-wrongs" accept=".xlsx,.xls" style="display:none">
+      <input type="file" id="f-restore" accept=".json" style="display:none">
+      <button class="btn" onclick="document.getElementById('f-scores').click()">导入成绩表</button>
+      <button class="btn ghost" onclick="document.getElementById('f-wrongs').click()">导入错题表</button>
+      <button class="btn ghost" onclick="genDemo()">一键生成演示数据</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>数据安全</h2>
+    <div class="row row-4" id="sec-status"></div>
+    <div class="form-row" style="margin-top:12px">
+      <button class="btn" onclick="backupData()">导出加密备份</button>
+      <button class="btn ghost" onclick="document.getElementById('f-restore').click()">从备份恢复</button>
+      <button class="btn ghost" onclick="clearAll()">清空所有数据</button>
+    </div>
+    <p class="hint">
+      数据存储位置：浏览器 localStorage（约 5-10MB）。学生姓名、作答已本地混淆加密。<br>
+      建议定期导出备份文件保存到安全位置。
+    </p>
+  </div>
+  <div class="card">
+    <h2>已导入的考试</h2>
+    <div id="exam-list"></div>
+  </div>
+</section>
+
+<!-- ========== 成绩分析 ========== -->
+<section class="view" id="view-scores">
+  <div class="tabs">
+    <button data-tab="single" class="active">单次考试分析</button>
+    <button data-tab="multi">多次考试分析</button>
+    <button data-tab="student">学生个人分析</button>
+  </div>
+
+  <div class="tab active" id="tab-single">
+    <div class="card">
+      <h2>单次考试分析</h2>
+      <div class="form-row">
+        <label>班级<select id="sa-class"></select></label>
+        <label>场次<select id="sa-session"></select></label>
+        <label>学科<select id="sa-subject"><option value="">全学科</option></select></label>
+        <button class="btn" onclick="runSingle()">开始分析</button>
+      </div>
+      <details>
+        <summary>高级选项（分数段 / 等级线）</summary>
+        <div class="form-row" style="margin-top:8px">
+          <label>分数段<input id="sa-thresholds" value="60,70,80,90" style="width:180px"></label>
+          <label>等级线 A/B/C<input id="sa-lines" value="85,70,60" style="width:160px"></label>
+        </div>
+      </details>
+    </div>
+    <div id="sa-result"></div>
+  </div>
+
+  <div class="tab" id="tab-multi">
+    <div class="card">
+      <h2>多次考试分析</h2>
+      <div class="form-row">
+        <label>班级<select id="ma-class"></select></label>
+        <label>学科<select id="ma-subject"><option value="">全学科</option></select></label>
+        <button class="btn" onclick="runMulti()">开始分析</button>
+      </div>
+      <div class="hint" style="margin-bottom:6px">点击选择要对比的场次（按时间顺序，至少 2 场）：</div>
+      <div id="ma-sessions" style="line-height:2.4"></div>
+    </div>
+    <div id="ma-result"></div>
+  </div>
+
+  <div class="tab" id="tab-student">
+    <div class="card">
+      <h2>学生个人分析</h2>
+      <div class="form-row">
+        <label>班级<select id="sp-class"></select></label>
+        <label>学生<select id="sp-student"></select></label>
+        <button class="btn" onclick="runStudent()">开始分析</button>
+      </div>
+    </div>
+    <div id="sp-result"></div>
+  </div>
+</section>
+
+<!-- ========== 错题分析 ========== -->
+<section class="view" id="view-wrong">
+  <div class="tabs">
+    <button data-tab="wc-class" class="active">班级错题</button>
+    <button data-tab="wc-stu">个人错题</button>
+    <button data-tab="wc-kp">知识点薄弱</button>
+  </div>
+
+  <div class="tab active" id="tab-wc-class">
+    <div class="card">
+      <h2>班级错题分析</h2>
+      <div class="form-row">
+        <label>考试<select id="wc-exam"></select></label>
+        <button class="btn" onclick="runClassWrong()">分析</button>
+      </div>
+    </div>
+    <div id="wc-result"></div>
+  </div>
+
+  <div class="tab" id="tab-wc-stu">
+    <div class="card">
+      <h2>个人错题分析</h2>
+      <div class="form-row">
+        <label>班级<select id="ws-class"></select></label>
+        <label>学生<select id="ws-student"></select></label>
+        <button class="btn" onclick="runStuWrong()">分析</button>
+      </div>
+    </div>
+    <div id="ws-result"></div>
+  </div>
+
+  <div class="tab" id="tab-wc-kp">
+    <div class="card">
+      <h2>知识点薄弱排行</h2>
+      <div class="form-row">
+        <label>班级<select id="wk-class"></select></label>
+        <button class="btn" onclick="runKpWeak()">分析</button>
+      </div>
+    </div>
+    <div id="wk-result"></div>
+  </div>
+</section>
+
+<!-- ========== 智能推荐 ========== -->
+<section class="view" id="view-ai">
+  <div class="card">
+    <div class="form-row">
+      <label>班级<select id="ai-class"></select></label>
+      <label>学生<select id="ai-student"></select></label>
+      <label>计划天数<input id="ai-days" type="number" value="7" style="min-width:70px"></label>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button data-tab="ai-similar" class="active">同类题推荐</button>
+    <button data-tab="ai-explain">知识点讲解</button>
+    <button data-tab="ai-plan">学习计划</button>
+    <button data-tab="ai-book">错题本</button>
+  </div>
+
+  <div class="tab active" id="tab-ai-similar"><div id="ai-similar-body"></div></div>
+  <div class="tab" id="tab-ai-explain"><div id="ai-explain-body"></div></div>
+  <div class="tab" id="tab-ai-plan"><div id="ai-plan-body"></div></div>
+  <div class="tab" id="tab-ai-book"><div id="ai-book-body"></div></div>
+</section>
+
+<!-- ========== 报告中心 ========== -->
+<section class="view" id="view-report">
+  <div class="card">
+    <h2>一键生成</h2>
+    <div class="form-row">
+      <label>考试<select id="rep-exam"></select></label>
+      <label>报告类型
+        <select id="rep-kind">
+          <option value="exam">成绩分析报告（打印PDF）</option>
+          <option value="parent">家长会沟通稿（Word）</option>
+          <option value="wrongbook">全班错题本汇总（打印PDF）</option>
+        </select>
+      </label>
+      <button class="btn" onclick="doReport()">生成</button>
+    </div>
+    <div id="rep-result" class="hint"></div>
+  </div>
+  <div class="card">
+    <h2>批量导出个人错题本</h2>
+    <div class="form-row">
+      <label>班级<select id="rep-class"></select></label>
+      <button class="btn ghost" onclick="exportClassWrongBooks()">导出全班错题本（Word）</button>
+    </div>
+    <p class="hint">会为每位学生生成一个独立的 .doc 文件，浏览器会依次下载。</p>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   工具
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const K = 'aitw_data_v1', KEY = 'aitw-2025-secret-salt';
+let charts = {};
+
+function toast(msg, ms = 2200) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmt(n, d = 2) { return n == null || isNaN(n) ? '—' : Number(n).toFixed(d); }
+
+/* 简单同步加密（轻量混淆，本地隐私保护） */
+function xorStr(s, k) {
+  let out = '';
+  for (let i = 0; i < s.length; i++)
+    out += String.fromCharCode(s.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+  return out;
+}
+function enc(s) {
+  if (!s) return '';
+  return 'E:' + btoa(unescape(encodeURIComponent(xorStr(s, KEY))));
+}
+function dec(s) {
+  if (!s) return '';
+  if (!String(s).startsWith('E:')) return String(s);
+  try {
+    return xorStr(decodeURIComponent(escape(atob(s.slice(2)))), KEY);
+  } catch (e) { return '[解密失败]'; }
+}
+function maskName(n) {
+  if (!n) return '';
+  return n.length > 1 ? n[0] + '*'.repeat(n.length - 1) : n;
+}
+
+/* ============================================================
+   数据库
+   ============================================================ */
+const DB = {
+  data: null,
+  init() {
+    const raw = localStorage.getItem(K);
+    if (raw) {
+      try { this.data = JSON.parse(raw); }
+      catch (e) { this.data = null; }
+    }
+    if (!this.data) {
+      this.data = {
+        classes: [], students: [], exams: [], scores: [],
+        questions: [], answers: [], question_bank: [],
+        kp_resources: [], learning_plans: [], retry_records: [],
+        seq: {}
+      };
+      seedKpResources();
+      this.save();
+    }
+  },
+  save() { localStorage.setItem(K, JSON.stringify(this.data)); },
+  nextId(table) {
+    this.data.seq[table] = (this.data.seq[table] || 0) + 1;
+    return this.data.seq[table];
+  },
+  size() { return (localStorage.getItem(K) || '').length; },
+  find(table, pred) { return this.data[table].find(pred); },
+  filter(table, pred) { return this.data[table].filter(pred); }
+};
+
+function seedKpResources() {
+  DB.data.kp_resources = [
+    {
+      id: 1, subject: '数学', kp: '一元一次方程', chapter: '七年级上·第三章',
+      intro: '把方程想象成天平：左边加多少，右边就要加多少；移项就像把东西从一边搬到另一边，要换一个相反符号。',
+      visualize: '以 2x+3=7 为例，把左边看成直线 y=2x+3，方程的解就是这条直线与 y=7 交点对应的 x 值，即 x=2。',
+      steps: ['去分母：两边同乘各分母的最小公倍数','去括号：括号前是负号，各项都变号','移项：含未知数的项移一边、常数移另一边，移项变号','合并同类项：把同类项系数相加减','系数化为 1：两边同除未知数的系数'],
+      wrong_mind: '认为 2x 就是 2+x，把数字和字母直接相加。',
+      right_mind: '2x 表示 x 的 2 倍，是乘法关系；解方程时两边同除 2，得 x=2。',
+      tips: '去分去括移合并，系数化一是最后；移项变号记心间，两边同除系数走。'
+    },
+    {
+      id: 2, subject: '数学', kp: '整式加减', chapter: '七年级上·第二章',
+      intro: '把 3a 和 2a 想成 3 个苹果和 2 个苹果，合起来是 5 个苹果；但 3a 和 2b 是苹果和香蕉，不能相加。',
+      visualize: '用面积模型：3a 是长 3 宽 a 的矩形，2a 是长 2 宽 a 的矩形，拼起来长 5 宽 a，面积 5a。',
+      steps: ['找出多项式中的所有项','识别同类项：字母相同，相同字母指数也相同','把同类项分组，连同符号一起移动','合并同类项：系数相加减，字母和指数不变','按某个字母降幂排列结果'],
+      wrong_mind: '把 3a + 2b 合并成 5ab，认为字母可以直接加。',
+      right_mind: '3a 与 2b 不是同类项，不能合并；只有 3a 与 2a 才能合并成 5a。',
+      tips: '同类项，肩并肩，系数加减字母现；去括号，看符号，负号进门全变脸。'
+    },
+    {
+      id: 3, subject: '数学', kp: '二次函数', chapter: '九年级上·第二十二章',
+      intro: '把二次函数想象成投篮的轨迹：球从手上飞出，划出一条抛物线，最高点就是顶点。',
+      visualize: '开口向上像碗有最小值；开口向下像拱桥有最大值。顶点是抛物线的拐点。',
+      steps: ['判断 a 的符号确定开口方向','用 x=-b/(2a) 求对称轴','把对称轴的 x 代入原式求顶点 y','求与 y 轴交点：令 x=0 得 y=c','求与 x 轴交点：令 y=0 解一元二次方程','根据特征画抛物线草图'],
+      wrong_mind: '把顶点横坐标 h=-b/(2a) 记成 b/(2a)。',
+      right_mind: '顶点横坐标是 x=-b/(2a)，注意前面有负号。',
+      tips: 'a 正开口向天笑，a 负开口往下飘；顶点横标负 b 除二 a，纵标代入一算好。'
+    },
+    {
+      id: 4, subject: '数学', kp: '有理数运算', chapter: '七年级上·第一章',
+      intro: '温度计是最直观的模型：今天 -5℃，明天升高 3℃，就是 -5+3=-2℃。',
+      visualize: '用数轴理解：加法就是向右或向左移动；减法就是加上相反数。',
+      steps: ['识别运算类型','确定各数的符号','加法：同号相加一边倒，异号相加大减小','减法：减去一个数等于加它的相反数','乘法：同号得正，异号得负','检查结果符号与绝对值'],
+      wrong_mind: '把 -(-3) 看成 -3。',
+      right_mind: '两个负号相遇变成正号，-(-3)=3。',
+      tips: '同号相加一边倒，异号相加大减小；同号得正异号负，一个零来别忘了。'
+    },
+    {
+      id: 5, subject: '语文', kp: '文言文实词', chapter: '七年级上·古诗文',
+      intro: '文言文像古代人写的信：字少但信息量大，理解实词就像猜词义，要结合上下文。',
+      visualize: '用表格对比同一实词（如"之"）在不同句子中的不同含义。',
+      steps: ['通读全句理解大意','识别实词，尤其是多义词','用组词法猜测词义','结合上下文验证是否通顺','套入整句翻译，检验语义'],
+      wrong_mind: '一个实词只记一个意思。',
+      right_mind: '实词往往一词多义，必须结合语境判断。',
+      tips: '之乎者也莫死记，结合上下文思；一词多义要辨析，古今异义记心里。'
+    },
+    {
+      id: 6, subject: '英语', kp: '英语时态', chapter: '初中英语·语法专题',
+      intro: '时态像拍照：一般现在时是连拍，一般过去时是回看旧照片，现在完成时是新旧对比。',
+      visualize: '用时间轴展示：过去 → 现在 → 将来，每个时态对应不同区间和动词形式。',
+      steps: ['识别句子中的时间状语','根据时间状语判断大致时态','确定主语人称和数','选择正确的助动词','核对动词形式'],
+      wrong_mind: '把现在完成时和一般过去时混用。',
+      right_mind: '现在完成时强调对现在的影响，一般过去时只说明动作发生在过去。',
+      tips: '现在常常过去完，时间状语是关键；主语不同助动变，动词形式要记全。'
+    }
+  ];
+  DB.data.seq.kp_resources = 6;
+}
+
+/* ============================================================
+   图表
+   ============================================================ */
+function chart(id, option) {
+  if (!window.echarts) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (charts[id]) { charts[id].dispose(); }
+  charts[id] = echarts.init(el);
+  charts[id].setOption(option);
+}
+window.addEventListener('resize', () => {
+  Object.values(charts).forEach(c => c && c.resize());
+});
+
+/* ============================================================
+   统计
+   ============================================================ */
+function stats(arr) {
+  const n = arr.length;
+  if (!n) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  const mean = arr.reduce((a, b) => a + b, 0) / n;
+  const median = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+  const cnt = {};
+  arr.forEach(x => { const k = Math.round(x); cnt[k] = (cnt[k] || 0) + 1; });
+  const mode = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0][0];
+  const std = Math.sqrt(arr.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+  const pct = p => {
+    const k = (n - 1) * p, f = Math.floor(k), c = Math.min(f + 1, n - 1);
+    return f === c ? s[f] : s[f] + (s[c] - s[f]) * (k - f);
+  };
+  const q1 = pct(0.25), q3 = pct(0.75);
+  return {
+    count: n, mean, median, mode: Number(mode), std,
+    q1, q3, iqr: q3 - q1, max: s[n - 1], min: s[0]
+  };
+}
+function gradeOf(score, lines) {
+  const [A, B, C] = lines;
+  if (score >= A) return 'A';
+  if (score >= B) return 'B';
+  if (score >= C) return 'C';
+  return 'D';
+}
+
+/* ============================================================
+   Excel 读取
+   ============================================================ */
+function readExcel(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        resolve(XLSX.utils.sheet_to_json(ws));
+      } catch (err) { reject(err); }
+    };
+    r.onerror = reject;
+    r.readAsArrayBuffer(file);
+  });
+}
+function findCol(cols, keys) {
+  for (const c of cols) for (const k of keys) if (String(c).includes(k)) return c;
+  return null;
+}
+
+/* ============================================================
+   数据导入
+   ============================================================ */
+function getOrCreateClass(name) {
+  let c = DB.find('classes', x => x.name === name);
+  if (!c) { c = { id: DB.nextId('classes'), name }; DB.data.classes.push(c); }
+  return c.id;
+}
+function getOrCreateStudent(sno, name, cid) {
+  let s = DB.find('students', x => x.student_no === sno);
+  if (s) {
+    if (name) s.name_enc = enc(name);
+    s.class_id = cid;
+    return s.id;
+  }
+  s = { id: DB.nextId('students'), student_no: sno, name_enc: enc(name), class_id: cid };
+  DB.data.students.push(s);
+  return s.id;
+}
+function getOrCreateExam(meta, cid) {
+  let e = DB.find('exams', x =>
+    x.name === meta.exam_name && x.subject === meta.subject &&
+    x.class_id === cid && x.exam_date === meta.date);
+  if (e) return e.id;
+  e = {
+    id: DB.nextId('exams'), name: meta.exam_name, subject: meta.subject,
+    exam_date: meta.date, class_id: cid, full_score: meta.full_score || 100
+  };
+  DB.data.exams.push(e);
+  return e.id;
+}
+
+async function importScoresFile(file) {
+  const meta = {
+    exam_name: $('#imp-exam').value.trim(),
+    subject: $('#imp-subject').value.trim(),
+    date: $('#imp-date').value.trim(),
+    class_name: $('#imp-class').value.trim(),
+    full_score: parseFloat($('#imp-full').value) || 100
+  };
+  if (!meta.exam_name || !meta.subject || !meta.class_name) {
+    toast('请先填写考试名称、科目、班级'); return;
+  }
+  const rows = await readExcel(file);
+  if (!rows.length) { toast('表格为空'); return; }
+  const cols = Object.keys(rows[0]);
+  const c_no = findCol(cols, ['学号', '考号']);
+  const c_name = findCol(cols, ['姓名']);
+  const c_score = findCol(cols, ['成绩', '分数', '得分']);
+  if (!c_no || !c_score) { toast('缺少「学号」或「成绩」列\n当前列：' + cols.join(',')); return; }
+
+  const cid = getOrCreateClass(meta.class_name);
+  const eid = getOrCreateExam(meta, cid);
+  let imp = 0, upd = 0;
+  for (const row of rows) {
+    const sno = String(row[c_no] || '').trim();
+    if (!sno) continue;
+    const score = parseFloat(row[c_score]);
+    if (isNaN(score)) continue;
+    const nm = c_name ? String(row[c_name] || '').trim() : '';
+    const sid = getOrCreateStudent(sno, nm, cid);
+    const ex = DB.data.scores.find(s => s.exam_id === eid && s.student_id === sid);
+    if (ex) { ex.score = score; upd++; }
+    else { DB.data.scores.push({ id: DB.nextId('scores'), exam_id: eid, student_id: sid, score }); imp++; }
+  }
+  DB.save();
+  toast(`导入成功：新增 ${imp}，更新 ${upd}`);
+  refreshAll();
+}
+
+async function importWrongsFile(file) {
+  const meta = {
+    exam_name: $('#imp-exam').value.trim(),
+    subject: $('#imp-subject').value.trim() || '综合',
+    date: $('#imp-date').value.trim(),
+    class_name: $('#imp-class').value.trim(),
+    full_score: parseFloat($('#imp-full').value) || 100
+  };
+  if (!meta.exam_name || !meta.class_name) { toast('请先填写考试名称、班级'); return; }
+  const rows = await readExcel(file);
+  if (!rows.length) { toast('表格为空'); return; }
+  const cols = Object.keys(rows[0]);
+  const c_no = findCol(cols, ['学号', '考号']);
+  const c_name = findCol(cols, ['姓名']);
+  const c_qno = findCol(cols, ['题号']);
+  const c_kp = findCol(cols, ['知识点', '考点']);
+  const c_content = findCol(cols, ['题干', '题目']);
+  const c_got = findCol(cols, ['得分']);
+  const c_full = findCol(cols, ['满分', '分值']);
+  if (!c_no || !c_qno) { toast('缺少「学号」或「题号」列\n当前列：' + cols.join(',')); return; }
+
+  const cid = getOrCreateClass(meta.class_name);
+  const eid = getOrCreateExam(meta, cid);
+  const qcache = {};
+  let imp = 0;
+  for (const row of rows) {
+    const qno = String(row[c_qno] || '').trim();
+    if (!qno) continue;
+    let qid = qcache[qno];
+    if (!qid) {
+      let q = DB.data.questions.find(x => x.exam_id === eid && x.q_no === qno);
+      if (!q) {
+        q = {
+          id: DB.nextId('questions'), exam_id: eid, q_no: qno,
+          kp: c_kp ? String(row[c_kp] || '').trim() : '',
+          content: c_content ? String(row[c_content] || '').trim() : '',
+          full_score: c_full ? parseFloat(row[c_full]) || 0 : 0,
+          qtype: 'essay', options: [], std_answer: ''
+        };
+        DB.data.questions.push(q);
+      }
+      qid = q.id; qcache[qno] = qid;
+    }
+    const sno = String(row[c_no] || '').trim();
+    if (!sno) continue;
+    const nm = c_name ? String(row[c_name] || '').trim() : '';
+    const sid = getOrCreateStudent(sno, nm, cid);
+    const got = c_got ? parseFloat(row[c_got]) || 0 : 0;
+    const full = c_full ? parseFloat(row[c_full]) || 0 : 0;
+    const ok = (full > 0 && got >= full) ? 1 : 0;
+    const ex = DB.data.answers.find(a =>
+      a.exam_id === eid && a.student_id === sid && a.question_id === qid);
+    if (ex) { ex.got = got; ex.is_correct = ok; }
+    else {
+      DB.data.answers.push({
+        id: DB.nextId('answers'), exam_id: eid, student_id: sid, question_id: qid,
+        student_answer_enc: '', got, is_correct: ok, err_type: '', need_review: 0
+      });
+      imp++;
+    }
+  }
+  DB.save();
+  toast(`导入成功：新增 ${imp} 条作答`);
+  refreshAll();
+}
+
+/* ============================================================
+   分析 · 单次
+   ============================================================ */
+function getSessionData(name, date, cid, subject) {
+  const exams = DB.data.exams.filter(e =>
+    e.name === name && e.exam_date === date && e.class_id === cid &&
+    (!subject || e.subject === subject));
+  if (!exams.length) return null;
+  const eids = exams.map(e => e.id);
+  const byStu = {};
+  for (const sc of DB.data.scores) {
+    if (!eids.includes(sc.exam_id)) continue;
+    const ex = exams.find(e => e.id === sc.exam_id);
+    const sid = sc.student_id;
+    if (!byStu[sid]) byStu[sid] = { student_id: sid, by_subject: {}, total: 0, full_total: 0 };
+    byStu[sid].by_subject[ex.subject] = { score: sc.score, full: ex.full_score };
+    byStu[sid].total += sc.score;
+    byStu[sid].full_total += ex.full_score;
+  }
+  const students = Object.values(byStu).map(s => {
+    const stu = DB.find('students', x => x.id === s.student_id) || {};
+    return { ...s, student_no: stu.student_no || '', name: dec(stu.name_enc) };
+  });
+  let fullRef = 100;
+  if (subject) {
+    fullRef = exams[0].full_score;
+    students.forEach(s => { s.score = (s.by_subject[subject]?.score) || 0; });
+  } else {
+    students.forEach(s => {
+      s.score = s.full_total ? (s.total / s.full_total * 100) : 0;
+    });
+  }
+  return { students, exams, fullRef };
+}
+
+function analyzeSingle(name, date, cid, subject, thresholds, gradeLines) {
+  thresholds = thresholds || [60, 70, 80, 90];
+  gradeLines = gradeLines || [85, 70, 60];
+  const d = getSessionData(name, date, cid, subject);
+  if (!d || !d.students.length) return { error: '该场次暂无数据' };
+  const students = d.students;
+  const arr = students.map(s => s.score);
+  const st = stats(arr);
+  const full = d.fullRef;
+  st.pass_rate = (arr.filter(x => x >= full * 0.6).length / arr.length * 100);
+  st.excellent_rate = (arr.filter(x => x >= full * 0.85).length / arr.length * 100);
+
+  const edges = [...new Set([0, ...thresholds, 101])].sort((a, b) => a - b);
+  const dist = [];
+  for (let i = 0; i < edges.length - 1; i++) {
+    const lo = edges[i], hi = edges[i + 1];
+    dist.push({
+      label: hi < 101 ? `${lo}-${hi}` : `${lo}+`,
+      count: arr.filter(x => x >= lo && x < hi).length
+    });
+  }
+
+  const ranked = [...students].sort((a, b) => b.score - a.score);
+  ranked.forEach((s, i) => { s.rank = i + 1; s.grade = gradeOf(s.score, gradeLines); });
+
+  const lowLine = st.mean - st.std;
+  const priority = ranked.filter(s =>
+    s.score < lowLine || s.score < full * 0.6 || s.grade === 'D'
+  ).slice(0, 15).map(s => {
+    const reasons = [];
+    if (s.score < lowLine) reasons.push('低于均值 1 个标准差');
+    if (s.score < full * 0.6) reasons.push('未达及格线');
+    if (s.grade === 'D') reasons.push('D 等');
+    return { ...s, reasons };
+  });
+
+  const [A, B, C] = gradeLines;
+  const critical = [];
+  ranked.forEach(s => {
+    [[A, 'A线'], [B, 'B线'], [C, 'C线']].forEach(([lv, ln]) => {
+      if (Math.abs(s.score - lv) <= 3 && !critical.find(x => x.student_id === s.student_id)) {
+        critical.push({
+          ...s, near_line: ln, line_value: lv,
+          gap: s.score - lv, direction: s.score < lv ? '差一点' : '刚过线'
+        });
+      }
+    });
+  });
+
+  const subjectLayers = [];
+  if (!subject) {
+    const subjMap = {};
+    students.forEach(s => {
+      Object.entries(s.by_subject).forEach(([subj, v]) => {
+        (subjMap[subj] = subjMap[subj] || []).push(v.score);
+      });
+    });
+    Object.entries(subjMap).forEach(([subj, ss]) => {
+      const lst = stats(ss);
+      lst.subject = subj;
+      const f = d.exams.find(e => e.subject === subj)?.full_score || 100;
+      lst.pass_rate = ss.filter(x => x >= f * 0.6).length / ss.length * 100;
+      lst.excellent_rate = ss.filter(x => x >= f * 0.85).length / ss.length * 100;
+      subjectLayers.push(lst);
+    });
+    subjectLayers.sort((a, b) => b.mean - a.mean);
+  }
+
+  const advice = genAdvice(st, gradeLines, full);
+  const classDiag = analyzeClassWrongByExams(d.exams.map(e => e.id));
+
+  return {
+    stats: st, distribution: dist, students: ranked,
+    priority, critical: critical.slice(0, 15),
+    subject_layers: subjectLayers, advice, class_diag: classDiag,
+    full_score: full, pass_line: full * 0.6, excellent_line: full * 0.85
+  };
+}
+
+function genAdvice(st, gl, full) {
+  const out = [];
+  const { mean, std, pass_rate: pr, excellent_rate: er } = st;
+  if (mean >= full * 0.85) out.push(`班级均分 ${fmt(mean)}，整体优秀。建议提高练习难度，增加综合与拓展题型。`);
+  else if (mean >= full * 0.7) out.push(`班级均分 ${fmt(mean)}，整体良好。建议巩固中档题，同时加强基础薄弱环节。`);
+  else if (mean >= full * 0.6) out.push(`班级均分 ${fmt(mean)}，整体一般。建议放慢节奏，重点讲评基础概念与常见题型。`);
+  else out.push(`班级均分 ${fmt(mean)}，整体偏低。建议从基础知识点入手，做小步快跑的补差训练。`);
+  if (std > full * 0.15) out.push(`标准差 ${fmt(std)}，成绩分化明显。建议分层教学：优生拔高，后进生补基础。`);
+  else if (std < full * 0.08) out.push(`标准差 ${fmt(std)}，成绩较集中。可整体提升难度。`);
+  if (er < 10) out.push('优秀率偏低，建议加强尖子生培养，布置拓展题。');
+  if (pr < 70) out.push(`及格率仅 ${fmt(pr, 1)}%，建议针对 C 线（${gl[2]}±3）临界生做专项补差。`);
+  if (!out.length) out.push('各项指标正常，保持当前教学节奏。');
+  return out;
+}
+
+/* 班级错题统计 */
+function analyzeClassWrongByExams(eids) {
+  const qs = DB.data.questions.filter(q => eids.includes(q.exam_id));
+  if (!qs.length) return { questions: [], kp_stats: [], hot_questions: [] };
+  const out = [];
+  const kpMap = {};
+  for (const q of qs) {
+    const ans = DB.data.answers.filter(a => a.question_id === q.id);
+    const total = ans.length;
+    const wrong = ans.filter(a => !a.is_correct).length;
+    const errTypes = {};
+    ans.forEach(a => {
+      if (!a.is_correct && a.err_type) {
+        errTypes[a.err_type] = (errTypes[a.err_type] || 0) + 1;
+      }
+    });
+    const rate = total ? wrong / total * 100 : 0;
+    const item = {
+      q_no: q.q_no, kp: q.kp || '未归类', content: q.content,
+      total, wrong, wrong_rate: rate, err_types: errTypes
+    };
+    out.push(item);
+    const kp = q.kp || '未归类';
+    if (!kpMap[kp]) kpMap[kp] = { total: 0, wrong: 0, types: {} };
+    kpMap[kp].total += total;
+    kpMap[kp].wrong += wrong;
+    Object.entries(errTypes).forEach(([t, n]) => {
+      kpMap[kp].types[t] = (kpMap[kp].types[t] || 0) + n;
+    });
+  }
+  const kpList = Object.entries(kpMap).map(([kp, v]) => {
+    const wr = v.total ? v.wrong / v.total * 100 : 0;
+    return {
+      kp, total: v.total, wrong: v.wrong, wrong_rate: wr,
+      err_types: v.types,
+      level: wr >= 50 ? '薄弱' : (wr >= 30 ? '待加强' : '良好')
+    };
+  }).sort((a, b) => b.wrong_rate - a.wrong_rate);
+  return {
+    questions: out,
+    kp_stats: kpList,
+    hot_questions: [...out].sort((a, b) => b.wrong_rate - a.wrong_rate).slice(0, 10)
+  };
+}
+
+/* ============================================================
+   分析 · 多次
+   ============================================================ */
+function analyzeMulti(sessionKeys, subject) {
+  if (sessionKeys.length < 2) return { error: '至少 2 场考试' };
+  const all = [];
+  for (const [name, date, cid] of sessionKeys) {
+    const d = getSessionData(name, date, cid, subject);
+    if (!d || !d.students.length) continue;
+    const ranked = [...d.students].sort((a, b) => b.score - a.score);
+    ranked.forEach((s, i) => s.rank = i + 1);
+    const arr = ranked.map(s => s.score);
+    const st = stats(arr);
+    st.pass_rate = arr.filter(x => x >= 60).length / arr.length * 100;
+    st.excellent_rate = arr.filter(x => x >= 85).length / arr.length * 100;
+    all.push({ name, date, cid, students: ranked, stats: st });
+  }
+  if (all.length < 2) return { error: '有效场次不足 2 场' };
+
+  const classTrend = all.map(d => ({
+    name: d.name, mean: d.stats.mean, max: d.stats.max, min: d.stats.min,
+    std: d.stats.std, pass_rate: d.stats.pass_rate, excellent_rate: d.stats.excellent_rate
+  }));
+
+  const allStu = {};
+  all.forEach(d => {
+    d.students.forEach(s => {
+      const sid = s.student_id;
+      if (!allStu[sid]) allStu[sid] = { student_id: sid, student_no: s.student_no, name: s.name, scores: [], ranks: [] };
+      allStu[sid].scores.push(s.score);
+      allStu[sid].ranks.push(s.rank);
+    });
+  });
+
+  const firstLast = [], stability = [], rankChanges = [];
+  Object.values(allStu).forEach(s => {
+    if (s.scores.length < 2) return;
+    firstLast.push({
+      ...s, first_score: s.scores[0], last_score: s.scores[s.scores.length - 1],
+      delta: s.scores[s.scores.length - 1] - s.scores[0],
+      first_rank: s.ranks[0], last_rank: s.ranks[s.ranks.length - 1],
+      rank_delta: s.ranks[0] - s.ranks[s.ranks.length - 1]
+    });
+    const m = s.scores.reduce((a, b) => a + b, 0) / s.scores.length;
+    const std = Math.sqrt(s.scores.reduce((a, b) => a + (b - m) ** 2, 0) / s.scores.length);
+    stability.push({ ...s, mean: m, std });
+    rankChanges.push({ ...s, delta: s.ranks[0] - s.ranks[s.ranks.length - 1] });
+  });
+  firstLast.sort((a, b) => b.delta - a.delta);
+  stability.sort((a, b) => a.std - b.std);
+  rankChanges.sort((a, b) => b.delta - a.delta);
+
+  const lineTrend = [
+    { label: '优秀线', line: 85 },
+    { label: '及格线', line: 60 }
+  ].map(lt => ({
+    ...lt,
+    series: all.map(d => ({ name: d.name, count: d.students.filter(s => s.score >= lt.line).length }))
+  }));
+
+  const subjectTrend = [];
+  if (!subject) {
+    const subjMap = {};
+    all.forEach(d => {
+      d.students.forEach(s => {
+        Object.entries(s.by_subject).forEach(([subj, v]) => {
+          if (!subjMap[subj]) subjMap[subj] = {};
+          if (!subjMap[subj][d.name]) subjMap[subj][d.name] = [];
+          subjMap[subj][d.name].push(v.score);
+        });
+      });
+    });
+    Object.entries(subjMap).forEach(([subj, byExam]) => {
+      const series = all.map(d => {
+        const vals = byExam[d.name] || [];
+        return vals.length ? { name: d.name, mean: vals.reduce((a, b) => a + b, 0) / vals.length } : null;
+      }).filter(Boolean);
+      subjectTrend.push({ subject: subj, series });
+    });
+  }
+
+  return {
+    sessions: all.map(d => ({ name: d.name, date: d.date })),
+    class_trend: classTrend,
+    first_last: firstLast, stability, rank_changes: rankChanges,
+    line_trend: lineTrend, subject_trend: subjectTrend
+  };
+}
+
+/* ============================================================
+   分析 · 个人
+   ============================================================ */
+function analyzeStudent(sid) {
+  const stu = DB.find('students', s => s.id === sid);
+  if (!stu) return null;
+  const myScores = DB.data.scores.filter(s => s.student_id === sid);
+  const myExams = myScores.map(s => {
+    const e = DB.find('exams', x => x.id === s.exam_id);
+    return { ...s, exam: e };
+  }).filter(x => x.exam);
+
+  const sessionKeys = [...new Set(myExams.map(x =>
+    `${x.exam.name}||${x.exam.exam_date}||${x.exam.class_id}`))];
+
+  const sessions = [], subjectSeries = {};
+  for (const key of sessionKeys) {
+    const [name, date, cid] = key.split('||');
+    const cidNum = Number(cid);
+    const examsHere = DB.data.exams.filter(e =>
+      e.name === name && e.exam_date === date && e.class_id === cidNum);
+    const eids = examsHere.map(e => e.id);
+    const allScores = DB.data.scores.filter(s => eids.includes(s.exam_id));
+    const byStu = {};
+    allScores.forEach(s => {
+      const ex = examsHere.find(e => e.id === s.exam_id);
+      if (!byStu[s.student_id]) byStu[s.student_id] = { total: 0, full: 0 };
+      byStu[s.student_id].total += s.score;
+      byStu[s.student_id].full += ex.full_score;
+    });
+    const totals = Object.entries(byStu).map(([k, v]) => ({ sid: Number(k), pct: v.full ? v.total / v.full * 100 : 0 }));
+    totals.sort((a, b) => b.pct - a.pct);
+    const n = totals.length;
+    const me = totals.find(t => t.sid === sid) || { pct: 0 };
+    const rank = totals.findIndex(t => t.sid === sid) + 1 || n;
+    const percentile = n ? (n - rank) / n * 100 : 0;
+
+    const subjHere = {};
+    myExams.forEach(x => {
+      if (x.exam.name === name && x.exam.exam_date === date && x.exam.class_id === cidNum) {
+        subjHere[x.exam.subject] = { score: x.score, full: x.exam.full_score };
+      }
+    });
+    const subjAvg = {};
+    examsHere.forEach(e => {
+      const scores = DB.data.scores.filter(s => s.exam_id === e.id).map(s => s.score);
+      if (scores.length) subjAvg[e.subject] = scores.reduce((a, b) => a + b, 0) / scores.length;
+    });
+    Object.entries(subjHere).forEach(([subj, v]) => {
+      if (!subjectSeries[subj]) subjectSeries[subj] = [];
+      subjectSeries[subj].push({ name, date, score: v.score, full: v.full, class_avg: subjAvg[subj] });
+    });
+    sessions.push({
+      name, date, total_pct: me.pct, rank, total_students: n, percentile, subjects: subjHere
+    });
+  }
+
+  const subjects = [];
+  Object.entries(subjectSeries).forEach(([subj, items]) => {
+    items.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const scores = items.map(i => i.score);
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const std = scores.length > 1 ? Math.sqrt(scores.reduce((a, b) => a + (b - mean) ** 2, 0) / scores.length) : 0;
+    const diffs = items.filter(i => i.class_avg != null).map(i => i.score - i.class_avg);
+    const avgDiff = diffs.length ? diffs.reduce((a, b) => a + b, 0) / diffs.length : 0;
+    const trend = scores.length >= 2 ?
+      (scores[scores.length - 1] - scores[0] > 3 ? '上升' : (scores[scores.length - 1] - scores[0] < -3 ? '下降' : '稳定'))
+      : '稳定';
+    subjects.push({
+      subject: subj, scores, names: items.map(i => i.name),
+      class_avgs: items.map(i => i.class_avg),
+      mean, std, avg_diff: avgDiff, trend
+    });
+  });
+  subjects.sort((a, b) => b.avg_diff - a.avg_diff);
+
+  const radar = subjects.map(s => ({
+    subject: s.subject, my_score: s.mean,
+    class_avg: s.class_avgs.filter(x => x != null).length
+      ? s.class_avgs.filter(x => x != null).reduce((a, b) => a + b, 0) / s.class_avgs.filter(x => x != null).length
+      : 0
+  }));
+
+  const wrongAnalysis = studentWrongAnalysis(sid);
+  const letter = genParentLetter(dec(stu.name_enc), sessions, subjects, wrongAnalysis);
+
+  return {
+    student: { id: stu.id, student_no: stu.student_no, name: dec(stu.name_enc) },
+    sessions, subjects, radar, wrong_analysis: wrongAnalysis, letter
+  };
+}
+
+/* ============================================================
+   错题分析
+   ============================================================ */
+function studentWrongAnalysis(sid) {
+  const myAnswers = DB.data.answers.filter(a => a.student_id === sid);
+  const wrongs = [];
+  const kpMap = {}, kpAll = {}, errTotal = {};
+  myAnswers.forEach(a => {
+    const q = DB.find('questions', x => x.id === a.question_id);
+    if (!q) return;
+    const kp = q.kp || '未归类';
+    if (!kpAll[kp]) kpAll[kp] = { total: 0, correct: 0 };
+    kpAll[kp].total++;
+    if (a.is_correct) kpAll[kp].correct++;
+    if (!a.is_correct) {
+      const e = DB.find('exams', x => x.id === a.exam_id);
+      wrongs.push({
+        ...a, q_no: q.q_no, content: q.content, kp, std_answer: q.std_answer,
+        full_score: q.full_score, exam_name: e?.name || '',
+        student_answer: dec(a.student_answer_enc)
+      });
+      if (!kpMap[kp]) kpMap[kp] = { wrong: 0, types: {} };
+      kpMap[kp].wrong++;
+      const et = a.err_type || '未分类';
+      kpMap[kp].types[et] = (kpMap[kp].types[et] || 0) + 1;
+      errTotal[et] = (errTotal[et] || 0) + 1;
+    }
+  });
+  const kpStats = Object.entries(kpMap).map(([kp, v]) => {
+    const info = kpAll[kp] || { total: v.wrong, correct: 0 };
+    const mastery = info.total ? info.correct / info.total * 100 : 0;
+    return {
+      kp, wrong: v.wrong, total: info.total, mastery,
+      err_types: v.types,
+      level: mastery < 60 ? '薄弱' : (mastery < 80 ? '待加强' : '基本掌握')
+    };
+  }).sort((a, b) => a.mastery - b.mastery);
+  return {
+    wrong_count: wrongs.length, wrongs, kp_stats: kpStats,
+    err_distribution: errTotal
+  };
+}
+
+/* ============================================================
+   智能推荐
+   ============================================================ */
+function diffFor(mastery) {
+  if (mastery < 40) return '基础';
+  if (mastery < 70) return '提升';
+  return '拓展';
+}
+function recommendSimilar(sid, perKp = 3) {
+  const wrong = studentWrongAnalysis(sid);
+  const weak = wrong.kp_stats.filter(k => k.mastery < 80).slice(0, 5);
+  if (!weak.length) return { weak: [], reason: wrong.wrong_count ? '各知识点已掌握 80% 以上' : '该生暂无错题数据' };
+  const doneIds = new Set();
+  DB.data.answers.filter(a => a.student_id === sid).forEach(a => doneIds.add(a.question_id));
+  const result = weak.map(w => {
+    const base = diffFor(w.mastery);
+    const order = ['基础', '提升', '拓展'];
+    const i = order.indexOf(base);
+    const diffs = [order[i], order[Math.min(i + 1, 2)], order[Math.max(i - 1, 0)]];
+    let pool = [];
+    for (const d of diffs) {
+      const items = DB.data.question_bank.filter(q => q.kp === w.kp && q.difficulty === d)
+        .filter(q => !doneIds.has(q.id)).slice(0, perKp);
+      pool.push(...items);
+      if (pool.length >= perKp) break;
+    }
+    return { ...w, difficulty: base, questions: pool.slice(0, perKp), has_enough: pool.length >= perKp };
+  });
+  return { weak: result };
+}
+
+function recommendExplanations(sid) {
+  const wrong = studentWrongAnalysis(sid);
+  const items = [];
+  for (const k of wrong.kp_stats) {
+    if (k.mastery >= 80) continue;
+    const res = DB.find('kp_resources', x => x.kp === k.kp);
+    const topErrs = Object.entries(k.err_types).sort((a, b) => b[1] - a[1]).slice(0, 2);
+    const focus = [];
+    topErrs.forEach(([et]) => {
+      if (et === '概念误解') focus.push('重点看【错误 vs 正确理解】，纠正概念');
+      else if (et === '计算错误') focus.push('按分步讲解重新算一遍，慢一点、准一点');
+      else if (et === '审题失误') focus.push('做题前先圈画关键词，确认问什么');
+      else if (et === '步骤不完整') focus.push('按标准步骤完整书写，不跳步');
+      else if (et === '未作答') focus.push('先看生活化引入，把问题变简单');
+    });
+    items.push({ kp: k.kp, mastery: k.mastery, resource: res || null, focus });
+  }
+  return { items };
+}
+
+function generatePlan(sid, days) {
+  const wrong = studentWrongAnalysis(sid);
+  const rec = recommendSimilar(sid);
+  const today = new Date().toISOString().slice(0, 10);
+  if (!wrong.kp_stats.length) {
+    return { plan_id: null, plan: { days, start: today, tasks: [], note: '暂无错题数据' } };
+  }
+  const weak = wrong.kp_stats.filter(k => k.mastery < 80)
+    .sort((a, b) => a.mastery - b.mastery || b.wrong - a.wrong).slice(0, 10);
+  const tasks = [];
+  const perDay = Math.max(1, Math.ceil(weak.length / days));
+  const baseDate = new Date();
+  for (let day = 0; day < days; day++) {
+    const dayKps = weak.slice(day * perDay, (day + 1) * perDay);
+    if (!dayKps.length) break;
+    const items = dayKps.map(k => {
+      const recItem = (rec.weak || []).find(r => r.kp === k.kp);
+      return {
+        kp: k.kp, mastery: k.mastery,
+        difficulty: recItem ? recItem.difficulty : '基础',
+        practice_count: recItem ? recItem.questions.length : 0,
+        review_errors: Object.keys(k.err_types).slice(0, 2)
+      };
+    });
+    const d = new Date(baseDate); d.setDate(d.getDate() + day);
+    tasks.push({
+      day: day + 1, date: d.toISOString().slice(0, 10), items,
+      goal: `掌握 ${items.length} 个知识点的核心题型`
+    });
+  }
+  const plan = { days, start: today, tasks, note: '' };
+  const existing = DB.find('learning_plans', p => p.student_id === sid && p.plan_date === today);
+  if (existing) { existing.plan_json = plan; }
+  else {
+    DB.data.learning_plans.push({
+      id: DB.nextId('learning_plans'), student_id: sid, plan_date: today,
+      days, plan_json: plan, progress_json: {}
+    });
+  }
+  DB.save();
+  return { plan_id: 1, plan };
+}
+
+function getWrongBook(sid) {
+  const wrong = studentWrongAnalysis(sid);
+  return wrong.wrongs;
+}
+
+/* ============================================================
+   家长会沟通稿
+   ============================================================ */
+function genParentLetter(name, sessions, subjects, wrong) {
+  if (!sessions.length) return { greeting: `尊敬的${name}家长：`, paragraphs: ['暂无成绩数据。'], closing: '' };
+  const latest = sessions[sessions.length - 1];
+  const { rank, total_students: n, total_pct: pct, percentile } = latest;
+  const strengths = [], weaknesses = [], suggestions = [];
+  subjects.forEach(s => {
+    if (s.avg_diff >= 3) strengths.push(`${s.subject}平均高于班级 ${fmt(s.avg_diff)} 分`);
+    else if (s.avg_diff <= -3) weaknesses.push(`${s.subject}低于班级平均 ${fmt(Math.abs(s.avg_diff))} 分`);
+    if (s.trend === '上升') strengths.push(`${s.subject}成绩呈上升趋势`);
+    else if (s.trend === '下降') weaknesses.push(`${s.subject}成绩出现下滑`);
+  });
+  if (percentile >= 70) strengths.push(`总分处于班级前列（${rank}/${n}）`);
+  else if (percentile <= 30) weaknesses.push(`总分处于班级后 30%（${rank}/${n}）`);
+
+  const weakSubj = subjects.filter(s => s.avg_diff < -3).map(s => s.subject);
+  if (weakSubj.length) suggestions.push(`重点补齐${weakSubj.join('、')}，每周安排 2–3 次专项练习`);
+  if (subjects.some(s => s.std > 8)) suggestions.push('部分科目波动较大，建议建立错题本，每次考试后做复盘');
+  if (percentile >= 70) suggestions.push('当前成绩位于班级前列，可适当拔高，尝试综合与拓展题型');
+  suggestions.push('保持与老师沟通，及时了解课堂表现和作业完成情况');
+
+  const paragraphs = [
+    `${name}同学在最近一次考试（${latest.name}）中，总分得分率 ${fmt(pct, 1)}%，班级排名 ${rank}/${n}，处于班级 ${fmt(percentile, 1)}% 的位置。`,
+    '【优点】' + (strengths.length ? strengths.join('；') + '。' : '学习态度认真，能跟上班级整体节奏。'),
+    '【问题】' + (weaknesses.length ? weaknesses.join('；') + '。' : '暂未发现明显短板，继续保持。')
+  ];
+
+  if (wrong && wrong.kp_stats) {
+    const weakKps = wrong.kp_stats.filter(k => k.mastery < 80).slice(0, 3);
+    if (weakKps.length) {
+      const details = weakKps.map(k => {
+        const top = Object.entries(k.err_types).sort((a, b) => b[1] - a[1])[0];
+        const txt = top ? `，主要是「${top[0]}」` : '';
+        return `· ${k.kp}（掌握度 ${fmt(k.mastery, 1)}%，错题 ${k.wrong} 道${txt}）`;
+      });
+      paragraphs.push('【错题分析】结合本次考试的错题情况，' + name + '同学存在以下薄弱知识点，建议重点关注：' + details.join('；'));
+      const sugLines = weakKps.map(k => {
+        const res = DB.find('kp_resources', x => x.kp === k.kp);
+        return res && res.tips ? `· ${k.kp}：${res.tips}` : `· ${k.kp}：建议重做错题 3 遍并整理同类题型`;
+      });
+      paragraphs.push('【针对性建议】' + sugLines.join('；') + '。建议每天安排 20–30 分钟，专项突破上述知识点。');
+    }
+  }
+  paragraphs.push('【改进建议】' + suggestions.join('；') + '。');
+
+  return {
+    greeting: `尊敬的${name}家长：`,
+    paragraphs,
+    closing: '感谢您的支持与配合，让我们共同关注孩子的成长。'
+  };
+}
+
+/* ============================================================
+   备份 / 恢复
+   ============================================================ */
+function backupData() {
+  const json = JSON.stringify(DB.data);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `AI教师工作台_备份_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('已导出备份文件');
+}
+function restoreData(file) {
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.students) throw new Error('格式不正确');
+      DB.data = data;
+      DB.save();
+      toast('恢复成功');
+      refreshAll();
+    } catch (err) { toast('恢复失败：' + err.message); }
+  };
+  r.readAsText(file);
+}
+function clearAll() {
+  if (!confirm('确定清空所有数据？此操作不可撤销！建议先导出备份。')) return;
+  if (!confirm('再次确认：所有成绩、错题、学生数据都会被删除。')) return;
+  localStorage.removeItem(K);
+  location.reload();
+}
+
+/* ============================================================
+   演示数据
+   ============================================================ */
+function genDemo() {
+  if (!confirm('将生成 30 人 × 3 场考试 × 3 科的演示数据，确定？')) return;
+  const names = ['张伟','王芳','李娜','刘洋','陈晨','杨帆','赵磊','黄敏','周杰','吴静',
+    '徐强','孙丽','马超','朱婷','胡军','郭燕','林涛','何静','高鹏','罗雪',
+    '郑浩','梁爽','谢宇','宋佳','唐磊','许晴','韩雪','冯刚','曹颖','邓超'];
+  const subjKps = {
+    '数学': ['一元一次方程','整式加减','有理数运算','二次函数'],
+    '语文': ['文言文实词'],
+    '英语': ['英语时态']
+  };
+  const sessions = [
+    ['第一次月考', '2025-03-15'],
+    ['期中考试', '2025-04-20'],
+    ['第二次月考', '2025-05-25']
+  ];
+  const cid = getOrCreateClass('七年级1班');
+  const base = {};
+  names.forEach(n => base[n] = 60 + Math.random() * 30);
+
+  sessions.forEach(([sname, sdate], ti) => {
+    Object.entries(subjKps).forEach(([subj, kps]) => {
+      const meta = { exam_name: sname, subject: subj, date: sdate, class_name: '七年级1班', full_score: 100 };
+      const eid = getOrCreateExam(meta, cid);
+      names.forEach((nm, i) => {
+        const sno = String(2025001 + i);
+        const sid = getOrCreateStudent(sno, nm, cid);
+        const score = Math.max(0, Math.min(100, base[nm] + ti * 1.5 + (Math.random() - 0.5) * 12));
+        const ex = DB.data.scores.find(s => s.exam_id === eid && s.student_id === sid);
+        if (ex) ex.score = score;
+        else DB.data.scores.push({ id: DB.nextId('scores'), exam_id: eid, student_id: sid, score: Number(score.toFixed(1)) });
+        // 题目
+        kps.forEach((kp, qi) => {
+          const qno = subj[0] + (qi + 1);
+          let q = DB.data.questions.find(x => x.exam_id === eid && x.q_no === qno);
+          if (!q) {
+            q = {
+              id: DB.nextId('questions'), exam_id: eid, q_no: qno, kp,
+              content: `${subj}第${qi+1}题（${kp}）`, full_score: 20,
+              qtype: 'choice', options: [{ key: 'A', text: '选项A' }, { key: 'B', text: '选项B' }],
+              std_answer: 'A'
+            };
+            DB.data.questions.push(q);
+          }
+          const ok = Math.random() < 0.75;
+          const got = ok ? 20 : (Math.random() < 0.5 ? 10 : 0);
+          const errs = ['概念误解','计算错误','审题失误','步骤不完整'];
+          const err = ok ? '' : errs[Math.floor(Math.random() * errs.length)];
+          const sa = ok ? 'A' : ['B','C','D'][Math.floor(Math.random() * 3)];
+          const exA = DB.data.answers.find(a => a.exam_id === eid && a.student_id === sid && a.question_id === q.id);
+          if (exA) { exA.got = got; exA.is_correct = ok ? 1 : 0; exA.err_type = err; exA.student_answer_enc = enc(sa); }
+          else {
+            DB.data.answers.push({
+              id: DB.nextId('answers'), exam_id: eid, student_id: sid,
+              question_id: q.id, student_answer_enc: enc(sa),
+              got, is_correct: ok ? 1 : 0, err_type: err, need_review: 0
+            });
+          }
+        });
+      });
+    });
+  });
+  // 生成示例题库
+  const bankItems = [
+    ['数学','一元一次方程','基础','choice','解方程 2x+3=7',[{key:'A',text:'x=2'},{key:'B',text:'x=3'}],'A','移项得 2x=4，两边除以 2 得 x=2'],
+    ['数学','一元一次方程','提升','fill','解方程 3(x-1)=2x+5','','8','去括号 3x-3=2x+5，移项得 x=8'],
+    ['数学','二次函数','基础','choice','抛物线 y=x²+2x+1 顶点是？',[{key:'A',text:'(-1,0)'},{key:'B',text:'(1,0)'}],'A','配方得 y=(x+1)²，顶点 (-1,0)'],
+    ['数学','整式加减','基础','choice','化简 3a+2a-5',[{key:'A',text:'5a-5'},{key:'B',text:'5a'}],'A','3a+2a=5a，与 -5 合并得 5a-5'],
+    ['语文','文言文实词','基础','choice','"之"作代词时指代？',[{key:'A',text:'他/它'},{key:'B',text:'难道'}],'A','"之"作代词常指代人、事、物'],
+    ['英语','英语时态','基础','choice','I ___ to school every day.',[{key:'A',text:'go'},{key:'B',text:'went'}],'A','every day 表示一般现在时，主语 I 用动词原形']
+  ];
+  bankItems.forEach(b => {
+    DB.data.question_bank.push({
+      id: DB.nextId('question_bank'), subject: b[0], kp: b[1], difficulty: b[2],
+      qtype: b[3], content: b[4], options: b[5], answer: b[6], analysis: b[7], source: '演示'
+    });
+  });
+  DB.save();
+  toast('演示数据已生成');
+  refreshAll();
+}
+
+/* ============================================================
+   渲染 · 下拉刷新
+   ============================================================ */
+function refreshAll() {
+  refreshOverview();
+  refreshSelectors();
+  refreshSecStatus();
+}
+function refreshOverview() {
+  const exams = DB.data.exams;
+  $('#ov-stats').innerHTML = `
+    <div class="stat"><div class="lbl">考试场次</div><div class="val">${exams.length}</div></div>
+    <div class="stat"><div class="lbl">班级数</div><div class="val">${DB.data.classes.length}</div></div>
+    <div class="stat"><div class="lbl">学生总数</div><div class="val">${DB.data.students.length}</div></div>
+    <div class="stat"><div class="lbl">题目总数</div><div class="val">${DB.data.questions.length}</div></div>`;
+  const listEl = $('#exam-list');
+  if (!exams.length) { listEl.innerHTML = '<div class="empty">暂无考试数据</div>'; return; }
+  const seen = new Set();
+  const rows = [];
+  exams.forEach(e => {
+    const k = `${e.name}||${e.exam_date}||${e.class_id}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    const cls = DB.find('classes', c => c.id === e.class_id);
+    const subs = exams.filter(x => x.name === e.name && x.exam_date === e.exam_date && x.class_id === e.class_id)
+      .map(x => x.subject).join('、');
+    rows.push(`<tr><td>${esc(e.name)}</td><td>${esc(subs)}</td><td>${esc(cls?.name || '')}</td><td>${esc(e.exam_date || '')}</td></tr>`);
+  });
+  listEl.innerHTML = `<div class="scroll"><table>
+    <tr><th>考试名称</th><th>科目</th><th>班级</th><th>日期</th></tr>
+    ${rows.join('')}</table></div>`;
+}
+function refreshSelectors() {
+  // 班级下拉
+  const clsOpts = DB.data.classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  ['#sa-class','#ma-class','#sp-class','#ws-class','#wk-class','#ai-class','#rep-class'].forEach(sel => {
+    const el = $(sel); if (!el) return;
+    const cur = el.value; el.innerHTML = clsOpts; if (cur) el.value = cur;
+  });
+  // 考试下拉
+  const examOpts = DB.data.exams.map(e => `<option value="${e.id}">${esc(e.name)} · ${esc(e.subject)}</option>`).join('');
+  ['#wc-exam','#rep-exam'].forEach(sel => {
+    const el = $(sel); if (!el) return;
+    const cur = el.value; el.innerHTML = examOpts; if (cur) el.value = cur;
+  });
+  // 学生下拉
+  refreshStudentsFor('#sp-class', '#sp-student');
+  refreshStudentsFor('#ws-class', '#ws-student');
+  refreshStudentsFor('#ai-class', '#ai-student');
+  // 场次下拉
+  refreshSessionsFor('#sa-class', '#sa-session', 'sa');
+  refreshSessionsChips('#ma-class', '#ma-sessions');
+}
+function refreshStudentsFor(clsSel, stuSel) {
+  const cid = $(clsSel)?.value;
+  if (!cid) return;
+  const students = DB.data.students.filter(s => s.class_id === Number(cid));
+  const el = $(stuSel);
+  if (!el) return;
+  const cur = el.value;
+  el.innerHTML = students.map(s =>
+    `<option value="${s.id}">${esc(s.student_no)} · ${esc(dec(s.name_enc))}</option>`).join('');
+  if (cur) el.value = cur;
+}
+function refreshSessionsFor(clsSel, sesSel, prefix) {
+  const cid = $(clsSel)?.value;
+  if (!cid) return;
+  const sessions = getSessions(Number(cid));
+  const el = $(sesSel);
+  if (!el) return;
+  el.innerHTML = sessions.map((s, i) =>
+    `<option value="${i}">${esc(s.name)} · ${esc(s.exam_date || '')}</option>`).join('');
+  el.onchange = () => refreshSubjectOptions(prefix, s => s);
+  refreshSubjectOptions(prefix, s => s);
+}
+function refreshSessionsChips(clsSel, boxSel) {
+  const cid = $(clsSel)?.value;
+  if (!cid) return;
+  const sessions = getSessions(Number(cid));
+  const box = $(boxSel);
+  if (!box) return;
+  box.innerHTML = sessions.map(s =>
+    `<span class="chip" data-key='${esc(JSON.stringify([s.name, s.exam_date, s.class_id]))}'>${esc(s.name)} · ${esc(s.exam_date || '')}</span>`).join('') ||
+    '<div class="empty">暂无场次</div>';
+  box.querySelectorAll('.chip').forEach(ch => ch.onclick = () => {
+    ch.classList.toggle('on');
+    refreshSubjectOptions('ma', s => s);
+  });
+}
+function getSessions(cid) {
+  const map = {};
+  DB.data.exams.filter(e => e.class_id === cid).forEach(e => {
+    const k = `${e.name}||${e.exam_date}||${e.class_id}`;
+    if (!map[k]) map[k] = { name: e.name, exam_date: e.exam_date, class_id: e.class_id, subjects: [] };
+    if (!map[k].subjects.includes(e.subject)) map[k].subjects.push(e.subject);
+  });
+  return Object.values(map).sort((a, b) => (b.exam_date || '').localeCompare(a.exam_date || ''));
+}
+function refreshSubjectOptions(prefix, _) {
+  const cid = $(`#${prefix}-class`)?.value;
+  if (!cid) return;
+  const subjects = new Set();
+  if (prefix === 'sa') {
+    const idx = Number($('#sa-session')?.value);
+    const sessions = getSessions(Number(cid));
+    if (sessions[idx]) sessions[idx].subjects.forEach(s => subjects.add(s));
+  } else if (prefix === 'ma') {
+    $$('#ma-sessions .chip.on').forEach(ch => {
+      const [n, d, c] = JSON.parse(ch.dataset.key);
+      const sessions = getSessions(c);
+      const s = sessions.find(x => x.name === n && x.exam_date === d);
+      if (s) s.subjects.forEach(x => subjects.add(x));
+    });
+  }
+  const sel = $(`#${prefix}-subject`);
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全学科</option>' +
+    [...subjects].map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  if ([...subjects].includes(cur)) sel.value = cur;
+}
+function refreshSecStatus() {
+  const size = (DB.size() / 1024).toFixed(1);
+  const encNames = DB.data.students.filter(s => (s.name_enc || '').startsWith('E:')).length;
+  const encAns = DB.data.answers.filter(a => (a.student_answer_enc || '').startsWith('E:')).length;
+  $('#sec-status').innerHTML = `
+    <div class="stat"><div class="lbl">存储位置</div>
+      <div class="val" style="font-size:12px">浏览器本地</div>
+      <div class="sub">占用 ${size} KB</div></div>
+    <div class="stat"><div class="lbl">加密方式</div>
+      <div class="val" style="font-size:13px">Base64 + 本地混淆</div>
+      <div class="sub">${encNames}/${DB.data.students.length} 姓名已加密</div></div>
+    <div class="stat"><div class="lbl">已加密作答</div><div class="val">${encAns}</div></div>
+    <div class="stat"><div class="lbl">云端依赖</div>
+      <div class="val" style="font-size:13px">无</div>
+      <div class="sub">完全本地</div></div>`;
+}
+
+/* ============================================================
+   渲染 · 单次分析
+   ============================================================ */
+function runSingle() {
+  const cid = Number($('#sa-class').value);
+  const idx = Number($('#sa-session').value);
+  if (!cid || isNaN(idx)) { toast('请选择班级和场次'); return; }
+  const sessions = getSessions(cid);
+  const sess = sessions[idx];
+  if (!sess) { toast('场次无效'); return; }
+  const subject = $('#sa-subject').value || null;
+  const thresholds = $('#sa-thresholds').value.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+  const gradeLines = $('#sa-lines').value.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+  if (gradeLines.length !== 3) { toast('等级线需 3 个数'); return; }
+  const d = analyzeSingle(sess.name, sess.exam_date, sess.class_id, subject, thresholds, gradeLines);
+  if (d.error) { toast(d.error); return; }
+  renderSingle(d, sess, subject);
+  toast('分析完成');
+}
+function renderSingle(d, sess, subject) {
+  const s = d.stats;
+  const subjLabel = subject || '全学科';
+  const cd = d.class_diag || { questions: [], kp_stats: [], hot_questions: [] };
+  $('#sa-result').innerHTML = `
+    <div class="card">
+      <h2>${esc(sess.name)} · ${esc(subjLabel)} · 基础统计</h2>
+      <div class="row row-5">
+        <div class="stat"><div class="lbl">平均分</div><div class="val">${fmt(s.mean)}</div></div>
+        <div class="stat"><div class="lbl">中位数</div><div class="val">${fmt(s.median)}</div></div>
+        <div class="stat"><div class="lbl">众数</div><div class="val">${s.mode}</div></div>
+        <div class="stat"><div class="lbl">标准差</div><div class="val">${fmt(s.std)}</div></div>
+        <div class="stat"><div class="lbl">四分位距</div><div class="val">${fmt(s.iqr)}</div>
+          <div class="sub">Q1=${fmt(s.q1, 1)} Q3=${fmt(s.q3, 1)}</div></div>
+      </div>
+      <div class="row row-4" style="margin-top:10px">
+        <div class="stat"><div class="lbl">最高分</div><div class="val">${fmt(s.max, 1)}</div></div>
+        <div class="stat"><div class="lbl">最低分</div><div class="val">${fmt(s.min, 1)}</div></div>
+        <div class="stat"><div class="lbl">及格率</div><div class="val">${fmt(s.pass_rate, 1)}%</div></div>
+        <div class="stat"><div class="lbl">优秀率</div><div class="val">${fmt(s.excellent_rate, 1)}%</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>讲评建议</h2>
+      ${d.advice.map(a => `<div class="advice">${esc(a)}</div>`).join('')}
+    </div>
+    <div class="card">
+      <h2>分数段分布</h2>
+      <div id="sa-chart-dist" class="chart"></div>
+    </div>
+    ${d.subject_layers.length ? `
+    <div class="card">
+      <h2>学科分层</h2>
+      <table>
+        <tr><th>科目</th><th>平均分</th><th>中位数</th><th>标准差</th>
+            <th>最高</th><th>最低</th><th>及格率</th><th>优秀率</th></tr>
+        ${d.subject_layers.map(k => `<tr>
+          <td><b>${esc(k.subject)}</b></td><td>${fmt(k.mean)}</td><td>${fmt(k.median)}</td>
+          <td>${fmt(k.std)}</td><td>${fmt(k.max, 1)}</td><td>${fmt(k.min, 1)}</td>
+          <td>${fmt(k.pass_rate, 1)}%</td><td>${fmt(k.excellent_rate, 1)}%</td>
+        </tr>`).join('')}
+      </table>
+    </div>` : ''}
+    ${cd.questions.length ? `
+    <div class="card">
+      <h2>试卷错题分析（班级）</h2>
+      <div class="row row-3" style="margin-bottom:12px">
+        <div class="stat"><div class="lbl">题目总数</div><div class="val">${cd.questions.length}</div></div>
+        <div class="stat"><div class="lbl">涉及知识点</div><div class="val">${cd.kp_stats.length}</div></div>
+        <div class="stat"><div class="lbl">薄弱知识点</div>
+          <div class="val">${cd.kp_stats.filter(k => k.level === '薄弱').length}</div></div>
+      </div>
+      <h3>薄弱知识点排行</h3>
+      <table>
+        <tr><th>知识点</th><th>错题率</th><th>错题/总题</th><th>等级</th><th>主要错误</th></tr>
+        ${cd.kp_stats.map(k => {
+          const cls = k.wrong_rate >= 50 ? 'bad' : (k.wrong_rate >= 30 ? 'warn' : 'ok');
+          const ets = Object.entries(k.err_types || {}).sort((a, b) => b[1] - a[1])
+            .slice(0, 3).map(([t, n]) => `${t}(${n})`).join('、') || '—';
+          return `<tr><td><b>${esc(k.kp)}</b></td>
+            <td><span class="tag ${cls}">${fmt(k.wrong_rate, 1)}%</span></td>
+            <td>${k.wrong}/${k.total}</td><td>${esc(k.level)}</td>
+            <td>${esc(ets)}</td></tr>`;
+        }).join('')}
+      </table>
+      <h3>高频错题</h3>
+      <div class="scroll"><table>
+        <tr><th>题号</th><th>知识点</th><th>题干</th><th>错题率</th></tr>
+        ${cd.hot_questions.slice(0, 8).map(q => {
+          const cls = q.wrong_rate >= 50 ? 'bad' : (q.wrong_rate >= 30 ? 'warn' : 'ok');
+          return `<tr><td>${esc(q.q_no)}</td><td>${esc(q.kp)}</td>
+            <td>${esc((q.content || '').slice(0, 40))}</td>
+            <td><span class="tag ${cls}">${fmt(q.wrong_rate, 1)}%</span></td></tr>`;
+        }).join('')}
+      </table></div>
+    </div>` : `
+    <div class="card">
+      <h2>试卷错题分析（班级）</h2>
+      <div class="empty">该场考试暂无错题数据。请先到「工作台」导入错题表。</div>
+    </div>`}
+    <div class="card">
+      <h2>优先关注学生</h2>
+      ${d.priority.length ? `<div class="scroll"><table>
+        <tr><th>排名</th><th>学号</th><th>姓名</th><th>分数</th><th>等级</th><th>原因</th></tr>
+        ${d.priority.map(p => `<tr><td>${p.rank}</td><td>${esc(p.student_no)}</td>
+          <td>${esc(maskName(p.name))}</td><td>${fmt(p.score, 1)}</td>
+          <td><span class="tag ${p.grade === 'D' ? 'bad' : (p.grade === 'C' ? 'warn' : 'info')}">${p.grade}</span></td>
+          <td>${p.reasons.map(esc).join('；')}</td></tr>`).join('')}
+      </table></div>` : '<div class="empty">暂无</div>'}
+    </div>
+    <div class="card">
+      <h2>等级线临界生（±3 分）</h2>
+      ${d.critical.length ? `<div class="scroll"><table>
+        <tr><th>排名</th><th>学号</th><th>姓名</th><th>分数</th>
+            <th>临近线</th><th>差值</th><th>状态</th></tr>
+        ${d.critical.map(c => `<tr><td>${c.rank}</td><td>${esc(c.student_no)}</td>
+          <td>${esc(maskName(c.name))}</td><td>${fmt(c.score, 1)}</td>
+          <td>${esc(c.near_line)}(${c.line_value})</td>
+          <td>${c.gap > 0 ? '+' : ''}${fmt(c.gap, 1)}</td>
+          <td><span class="tag ${c.direction === '刚过线' ? 'warn' : 'bad'}">${esc(c.direction)}</span></td>
+        </tr>`).join('')}
+      </table></div>` : '<div class="empty">暂无</div>'}
+    </div>
+    <div class="card">
+      <h2>成绩排名（共 ${d.students.length} 人）</h2>
+      <div class="scroll"><table>
+        <tr><th>#</th><th>学号</th><th>姓名</th><th>分数</th><th>等级</th></tr>
+        ${d.students.map(x => `<tr><td>${x.rank}</td><td>${esc(x.student_no)}</td>
+          <td>${esc(maskName(x.name))}</td><td>${fmt(x.score, 1)}</td>
+          <td><span class="tag ${x.grade === 'D' ? 'bad' : (x.grade === 'C' ? 'warn' : (x.grade === 'A' ? 'ok' : 'info'))}">${x.grade}</span></td>
+        </tr>`).join('')}
+      </table></div>
+    </div>`;
+  setTimeout(() => {
+    chart('sa-chart-dist', {
+      grid: { left: 50, right: 30, top: 30, bottom: 40 },
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: d.distribution.map(x => x.label) },
+      yAxis: { type: 'value', name: '人数' },
+      series: [{
+        type: 'bar', barWidth: '45%',
+        data: d.distribution.map(x => x.count),
+        itemStyle: { color: '#2a6df4', borderRadius: [6, 6, 0, 0] },
+        label: { show: true, position: 'top' }
+      }]
+    });
+  }, 30);
+}
+
+/* ============================================================
+   渲染 · 多次分析
+   ============================================================ */
+function runMulti() {
+  const cid = Number($('#ma-class').value);
+  if (!cid) { toast('请选择班级'); return; }
+  const chips = $$('#ma-sessions .chip.on');
+  if (chips.length < 2) { toast('请至少选择 2 场考试'); return; }
+  const keys = [...chips].map(ch => JSON.parse(ch.dataset.key));
+  keys.sort((a, b) => (a[1] || '').localeCompare(b[1] || ''));
+  const subject = $('#ma-subject').value || null;
+  const d = analyzeMulti(keys, subject);
+  if (d.error) { toast(d.error); return; }
+  renderMulti(d, subject);
+  toast('分析完成');
+}
+function renderMulti(d, subject) {
+  const subjLabel = subject || '全学科';
+  $('#ma-result').innerHTML = `
+    <div class="card"><h2>班级成绩变化 · ${esc(subjLabel)}</h2>
+      <div id="ma-chart-trend" class="chart"></div></div>
+    <div class="card"><h2>上线人数趋势</h2>
+      <div id="ma-chart-lines" class="chart"></div></div>
+    ${d.subject_trend.length ? `<div class="card">
+      <h2>班级学科趋势</h2><div id="ma-chart-subj" class="chart"></div></div>` : ''}
+    <div class="card"><h2>首末成绩对照</h2>
+      <div class="scroll"><table>
+        <tr><th>学号</th><th>姓名</th><th>首考</th><th>末考</th>
+            <th>分数变化</th><th>首排名</th><th>末排名</th><th>名次变化</th></tr>
+        ${d.first_last.map(x => {
+          const dc = x.delta > 0 ? 'ok' : (x.delta < 0 ? 'bad' : 'warn');
+          const rc = x.rank_delta > 0 ? 'ok' : (x.rank_delta < 0 ? 'bad' : 'warn');
+          return `<tr><td>${esc(x.student_no)}</td><td>${esc(maskName(x.name))}</td>
+            <td>${fmt(x.first_score, 1)}</td><td>${fmt(x.last_score, 1)}</td>
+            <td><span class="tag ${dc}">${x.delta > 0 ? '+' : ''}${fmt(x.delta, 1)}</span></td>
+            <td>${x.first_rank}</td><td>${x.last_rank}</td>
+            <td><span class="tag ${rc}">${x.rank_delta > 0 ? '↑' + x.rank_delta : (x.rank_delta < 0 ? '↓' + Math.abs(x.rank_delta) : '—')}</span></td>
+          </tr>`;
+        }).join('')}
+      </table></div>
+    </div>
+    <div class="card"><h2>学生稳定性（标准差越小越稳定）</h2>
+      <div class="scroll"><table>
+        <tr><th>学号</th><th>姓名</th><th>平均分</th><th>标准差</th><th>逐次分数</th></tr>
+        ${d.stability.map(x => `<tr><td>${esc(x.student_no)}</td>
+          <td>${esc(maskName(x.name))}</td><td>${fmt(x.mean, 1)}</td><td>${fmt(x.std)}</td>
+          <td>${x.scores.map(s => fmt(s, 1)).join(' → ')}</td></tr>`).join('')}
+      </table></div>
+    </div>
+    <div class="card"><h2>名次变化</h2>
+      <div class="scroll"><table>
+        <tr><th>学号</th><th>姓名</th><th>名次轨迹</th><th>净变化</th></tr>
+        ${d.rank_changes.map(x => {
+          const cls = x.delta > 0 ? 'ok' : (x.delta < 0 ? 'bad' : 'warn');
+          return `<tr><td>${esc(x.student_no)}</td><td>${esc(maskName(x.name))}</td>
+            <td>${x.ranks.join(' → ')}</td>
+            <td><span class="tag ${cls}">${x.delta > 0 ? '↑' + x.delta : (x.delta < 0 ? '↓' + Math.abs(x.delta) : '—')}</span></td>
+          </tr>`;
+        }).join('')}
+      </table></div>
+    </div>`;
+  setTimeout(() => {
+    chart('ma-chart-trend', {
+      grid: { left: 50, right: 50, top: 30, bottom: 40 },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['平均分', '最高分', '最低分', '及格率'] },
+      xAxis: { type: 'category', data: d.class_trend.map(x => x.name) },
+      yAxis: [{ type: 'value', name: '分' }, { type: 'value', name: '%', max: 100 }],
+      series: [
+        { name: '平均分', type: 'line', smooth: true, data: d.class_trend.map(x => x.mean), itemStyle: { color: '#2a6df4' }, lineStyle: { width: 3 } },
+        { name: '最高分', type: 'line', smooth: true, data: d.class_trend.map(x => x.max), itemStyle: { color: '#5ad8a6' } },
+        { name: '最低分', type: 'line', smooth: true, data: d.class_trend.map(x => x.min), itemStyle: { color: '#f6bd16' } },
+        { name: '及格率', type: 'line', smooth: true, yAxisIndex: 1, data: d.class_trend.map(x => x.pass_rate), itemStyle: { color: '#ff9845' } }
+      ]
+    });
+    chart('ma-chart-lines', {
+      grid: { left: 50, right: 30, top: 30, bottom: 40 },
+      tooltip: { trigger: 'axis' },
+      legend: { data: d.line_trend.map(x => x.label) },
+      xAxis: { type: 'category', data: d.line_trend[0].series.map(x => x.name) },
+      yAxis: { type: 'value', name: '人数' },
+      series: d.line_trend.map((lt, i) => ({
+        name: lt.label, type: 'bar', data: lt.series.map(x => x.count),
+        itemStyle: { color: i === 0 ? '#5ad8a6' : '#2a6df4', borderRadius: [5, 5, 0, 0] },
+        label: { show: true, position: 'top' }
+      }))
+    });
+    if (d.subject_trend.length) {
+      chart('ma-chart-subj', {
+        grid: { left: 50, right: 30, top: 40, bottom: 40 },
+        tooltip: { trigger: 'axis' },
+        legend: { data: d.subject_trend.map(x => x.subject) },
+        xAxis: { type: 'category', data: d.sessions.map(x => x.name) },
+        yAxis: { type: 'value', name: '平均分' },
+        series: d.subject_trend.map(st => ({
+          name: st.subject, type: 'line', smooth: true,
+          data: d.sessions.map(s => {
+            const f = st.series.find(x => x.name === s.name);
+            return f ? f.mean : null;
+          }),
+          lineStyle: { width: 3 }
+        }))
+      });
+    }
+  }, 30);
+}
+
+/* ============================================================
+   渲染 · 个人分析
+   ============================================================ */
+function runStudent() {
+  const sid = Number($('#sp-student').value);
+  if (!sid) { toast('请选择学生'); return; }
+  const d = analyzeStudent(sid);
+  if (!d) { toast('学生不存在'); return; }
+  if (!d.sessions.length) { $('#sp-result').innerHTML = '<div class="card"><div class="empty">该生暂无成绩数据</div></div>'; return; }
+  renderStudent(d);
+  toast('分析完成');
+}
+function renderStudent(d) {
+  const stu = d.student;
+  const latest = d.sessions[d.sessions.length - 1];
+  const letter = d.letter;
+  const wa = d.wrong_analysis;
+  $('#sp-result').innerHTML = `
+    <div class="card">
+      <h2>${esc(stu.name)}（${esc(stu.student_no)}） · 总览</h2>
+      <div class="row row-4">
+        <div class="stat"><div class="lbl">考试场次</div><div class="val">${d.sessions.length}</div></div>
+        <div class="stat"><div class="lbl">最近得分率</div><div class="val">${fmt(latest.total_pct, 1)}%</div></div>
+        <div class="stat"><div class="lbl">最近排名</div><div class="val">${latest.rank}/${latest.total_students}</div></div>
+        <div class="stat"><div class="lbl">错题总数</div><div class="val">${wa.wrong_count}</div></div>
+      </div>
+    </div>
+    <div class="card"><h2>总分发展曲线</h2><div id="sp-chart-total" class="chart"></div></div>
+    <div class="card"><h2>分学科成绩变化</h2><div id="sp-chart-subjects" class="chart"></div></div>
+    <div class="card"><h2>学科画像（雷达图）</h2><div id="sp-chart-radar" class="chart"></div></div>
+    <div class="card"><h2>单科学习轨迹</h2>
+      <table>
+        <tr><th>科目</th><th>均分</th><th>标准差</th><th>与班级均差</th><th>趋势</th><th>逐次成绩</th></tr>
+        ${d.subjects.map(s => {
+          const dc = s.avg_diff > 0 ? 'ok' : (s.avg_diff < -3 ? 'bad' : 'warn');
+          const tc = s.trend === '上升' ? 'ok' : (s.trend === '下降' ? 'bad' : 'info');
+          return `<tr><td><b>${esc(s.subject)}</b></td><td>${fmt(s.mean, 1)}</td>
+            <td>${fmt(s.std)}</td>
+            <td><span class="tag ${dc}">${s.avg_diff > 0 ? '+' : ''}${fmt(s.avg_diff, 1)}</span></td>
+            <td><span class="tag ${tc}">${esc(s.trend)}</span></td>
+            <td>${s.scores.map(x => fmt(x, 1)).join(' → ')}</td></tr>`;
+        }).join('')}
+      </table>
+    </div>
+    ${wa.kp_stats.length ? `
+    <div class="card">
+      <h2>个人错题分析</h2>
+      <div class="row row-3" style="margin-bottom:12px">
+        <div class="stat"><div class="lbl">错题总数</div><div class="val">${wa.wrong_count}</div></div>
+        <div class="stat"><div class="lbl">薄弱知识点</div>
+          <div class="val">${wa.kp_stats.filter(k => k.level === '薄弱').length}</div></div>
+        <div class="stat"><div class="lbl">主要错误类型</div>
+          <div class="val" style="font-size:13px">
+            ${Object.entries(wa.err_distribution).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k, v]) => `${k}(${v})`).join('、') || '—'}
+          </div></div>
+      </div>
+      <div id="sp-chart-wrong-radar" class="chart"></div>
+      <h3>薄弱知识点明细</h3>
+      ${wa.kp_stats.filter(k => k.mastery < 80).slice(0, 5).map(k => `
+        <div class="kp-block">
+          <div class="kp-head">
+            <span class="kp-name">${esc(k.kp)}</span>
+            <span class="tag ${k.mastery < 60 ? 'bad' : 'warn'}">掌握度 ${fmt(k.mastery, 1)}%</span>
+          </div>
+          <div style="font-size:13px;color:#5a6b82;line-height:1.8">
+            错题 ${k.wrong} / ${k.total}；主要错误：${Object.entries(k.err_types).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t}(${n})`).join('、') || '—'}
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+    <div class="card">
+      <h2>家长会沟通参考稿</h2>
+      <div class="letter">
+        <p class="greeting">${esc(letter.greeting)}</p>
+        ${letter.paragraphs.map(p => `<p>${esc(p)}</p>`).join('')}
+        <p class="closing">${esc(letter.closing)}</p>
+      </div>
+    </div>`;
+  setTimeout(() => {
+    chart('sp-chart-total', {
+      grid: { left: 50, right: 50, top: 30, bottom: 40 },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['得分率', '排名'] },
+      xAxis: { type: 'category', data: d.sessions.map(s => s.name) },
+      yAxis: [{ type: 'value', name: '得分率(%)', max: 100 }, { type: 'value', name: '排名', inverse: true }],
+      series: [
+        { name: '得分率', type: 'line', smooth: true, data: d.sessions.map(s => s.total_pct), itemStyle: { color: '#2a6df4' }, lineStyle: { width: 3 } },
+        { name: '排名', type: 'line', smooth: true, yAxisIndex: 1, data: d.sessions.map(s => s.rank), itemStyle: { color: '#ff9845' }, lineStyle: { width: 3 } }
+      ]
+    });
+    const colors = ['#2a6df4', '#5ad8a6', '#f6bd16', '#ff9845', '#945fb9', '#4ecdc4'];
+    chart('sp-chart-subjects', {
+      grid: { left: 50, right: 30, top: 40, bottom: 40 },
+      tooltip: { trigger: 'axis' },
+      legend: { data: d.subjects.map(s => s.subject) },
+      xAxis: { type: 'category', data: d.sessions.map(s => s.name) },
+      yAxis: { type: 'value', name: '分数' },
+      series: d.subjects.map((s, i) => ({
+        name: s.subject, type: 'line', smooth: true,
+        data: d.sessions.map(sess => sess.subjects[s.subject]?.score || null),
+        itemStyle: { color: colors[i % colors.length] }, lineStyle: { width: 3 }
+      }))
+    });
+    const maxV = Math.max(...d.radar.map(r => Math.max(r.my_score, r.class_avg)), 100);
+    chart('sp-chart-radar', {
+      tooltip: {},
+      legend: { data: ['本人', '班级平均'] },
+      radar: { indicator: d.radar.map(r => ({ name: r.subject, max: maxV * 1.15 })) },
+      series: [{
+        type: 'radar',
+        data: [
+          { value: d.radar.map(r => r.my_score), name: '本人', areaStyle: { color: 'rgba(42,109,244,.25)' }, itemStyle: { color: '#2a6df4' } },
+          { value: d.radar.map(r => r.class_avg), name: '班级平均', areaStyle: { color: 'rgba(246,189,22,.2)' }, itemStyle: { color: '#f6bd16' } }
+        ]
+      }]
+    });
+    if (wa.kp_stats.length) {
+      const kps = wa.kp_stats.slice(0, 8);
+      chart('sp-chart-wrong-radar', {
+        tooltip: {},
+        radar: { indicator: kps.map(k => ({ name: k.kp, max: 100 })) },
+        series: [{
+          type: 'radar',
+          data: [{ value: kps.map(k => k.mastery), name: '掌握度', areaStyle: { color: 'rgba(245,108,108,.25)' }, itemStyle: { color: '#f56c6c' } }]
+        }]
+      });
+    }
+  }, 30);
+}
+
+/* ============================================================
+   渲染 · 错题分析
+   ============================================================ */
+function runClassWrong() {
+  const eid = Number($('#wc-exam').value);
+  if (!eid) { toast('请选择考试'); return; }
+  const exam = DB.find('exams', e => e.id === eid);
+  const d = analyzeClassWrongByExams([eid]);
+  if (!d.questions.length) { $('#wc-result').innerHTML = '<div class="card"><div class="empty">该考试暂无错题数据</div></div>'; return; }
+  $('#wc-result').innerHTML = `
+    <div class="card">
+      <h2>${esc(exam.name)} · ${esc(exam.subject)} · 班级错题分析</h2>
+      <div class="row row-3">
+        <div class="stat"><div class="lbl">题目总数</div><div class="val">${d.questions.length}</div></div>
+        <div class="stat"><div class="lbl">涉及知识点</div><div class="val">${d.kp_stats.length}</div></div>
+        <div class="stat"><div class="lbl">薄弱知识点</div>
+          <div class="val">${d.kp_stats.filter(k => k.level === '薄弱').length}</div></div>
+      </div>
+    </div>
+    <div class="card"><h2>高频错题</h2>
+      <div class="scroll"><table>
+        <tr><th>题号</th><th>知识点</th><th>题干</th><th>错题率</th><th>错误类型</th></tr>
+        ${d.hot_questions.map(q => {
+          const cls = q.wrong_rate >= 50 ? 'bad' : (q.wrong_rate >= 30 ? 'warn' : 'ok');
+          const ets = Object.entries(q.err_types).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, n]) => `${t}(${n})`).join('、') || '—';
+          return `<tr><td>${esc(q.q_no)}</td><td>${esc(q.kp)}</td>
+            <td>${esc((q.content || '').slice(0, 50))}</td>
+            <td><span class="tag ${cls}">${fmt(q.wrong_rate, 1)}%</span></td>
+            <td>${esc(ets)}</td></tr>`;
+        }).join('')}
+      </table></div>
+    </div>
+    <div class="card"><h2>知识点薄弱排行</h2>
+      <table>
+        <tr><th>知识点</th><th>错题数</th><th>总题数</th><th>错误率</th><th>等级</th></tr>
+        ${d.kp_stats.map(k => {
+          const cls = k.wrong_rate >= 50 ? 'bad' : (k.wrong_rate >= 30 ? 'warn' : 'ok');
+          return `<tr><td><b>${esc(k.kp)}</b></td><td>${k.wrong}</td><td>${k.total}</td>
+            <td><span class="tag ${cls}">${fmt(k.wrong_rate, 1)}%</span></td>
+            <td>${esc(k.level)}</td></tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+}
+
+function runStuWrong() {
+  const sid = Number($('#ws-student').value);
+  if (!sid) { toast('请选择学生'); return; }
+  const d = studentWrongAnalysis(sid);
+  const stu = DB.find('students', s => s.id === sid);
+  if (!d.wrongs.length) { $('#ws-result').innerHTML = '<div class="card"><div class="empty">该生暂无错题</div></div>'; return; }
+  $('#ws-result').innerHTML = `
+    <div class="card">
+      <h2>${esc(dec(stu.name_enc))} · 个人错题分析</h2>
+      <div class="row row-3">
+        <div class="stat"><div class="lbl">错题总数</div><div class="val">${d.wrong_count}</div></div>
+        <div class="stat"><div class="lbl">涉及知识点</div><div class="val">${d.kp_stats.length}</div></div>
+        <div class="stat"><div class="lbl">主要错误类型</div>
+          <div class="val" style="font-size:13px">
+            ${Object.entries(d.err_distribution).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k, v]) => `${k}(${v})`).join('、') || '—'}
+          </div></div>
+      </div>
+    </div>
+    <div class="card"><h2>知识点掌握度雷达图</h2>
+      <div id="ws-chart-radar" class="chart"></div>
+    </div>
+    <div class="card"><h2>薄弱知识点</h2>
+      <table>
+        <tr><th>知识点</th><th>错题数</th><th>总题数</th><th>掌握度</th><th>等级</th><th>主要错误</th></tr>
+        ${d.kp_stats.map(k => {
+          const cls = k.mastery < 60 ? 'bad' : (k.mastery < 80 ? 'warn' : 'ok');
+          const ets = Object.entries(k.err_types).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t}(${n})`).join('、') || '—';
+          return `<tr><td><b>${esc(k.kp)}</b></td><td>${k.wrong}</td><td>${k.total}</td>
+            <td>${fmt(k.mastery, 1)}%</td>
+            <td><span class="tag ${cls}">${esc(k.level)}</span></td>
+            <td>${esc(ets)}</td></tr>`;
+        }).join('')}
+      </table>
+    </div>
+    <div class="card"><h2>错题清单</h2>
+      <div class="scroll"><table>
+        <tr><th>考试</th><th>题号</th><th>知识点</th><th>题干</th>
+            <th>学生答案</th><th>正确答案</th><th>得分</th><th>错误类型</th></tr>
+        ${d.wrongs.map(w => `<tr><td>${esc(w.exam_name)}</td><td>${esc(w.q_no)}</td>
+          <td>${esc(w.kp)}</td><td>${esc((w.content || '').slice(0, 40))}</td>
+          <td>${esc(w.student_answer || '（未作答）')}</td><td>${esc(w.std_answer || '')}</td>
+          <td>${fmt(w.got, 1)}/${w.full_score}</td><td>${esc(w.err_type || '—')}</td></tr>`).join('')}
+      </table></div>
+    </div>`;
+  setTimeout(() => {
+    const kps = d.kp_stats.slice(0, 8);
+    chart('ws-chart-radar', {
+      tooltip: {},
+      radar: { indicator: kps.map(k => ({ name: k.kp, max: 100 })) },
+      series: [{
+        type: 'radar',
+        data: [{ value: kps.map(k => k.mastery), name: '掌握度', areaStyle: { color: 'rgba(245,108,108,.25)' }, itemStyle: { color: '#f56c6c' } }]
+      }]
+    });
+  }, 30);
+}
+
+function runKpWeak() {
+  const cid = Number($('#wk-class').value);
+  if (!cid) { toast('请选择班级'); return; }
+  const eids = DB.data.exams.filter(e => e.class_id === cid).map(e => e.id);
+  const d = analyzeClassWrongByExams(eids);
+  if (!d.kp_stats.length) { $('#wk-result').innerHTML = '<div class="card"><div class="empty">暂无错题数据</div></div>'; return; }
+  $('#wk-result').innerHTML = `
+    <div class="card"><h2>班级知识点薄弱排行</h2>
+      <table>
+        <tr><th>知识点</th><th>错题数</th><th>总题数</th><th>错误率</th><th>等级</th><th>主要错误</th></tr>
+        ${d.kp_stats.map(k => {
+          const cls = k.wrong_rate >= 50 ? 'bad' : (k.wrong_rate >= 30 ? 'warn' : 'ok');
+          const ets = Object.entries(k.err_types || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, n]) => `${t}(${n})`).join('、') || '—';
+          return `<tr><td><b>${esc(k.kp)}</b></td><td>${k.wrong}</td><td>${k.total}</td>
+            <td><span class="tag ${cls}">${fmt(k.wrong_rate, 1)}%</span></td>
+            <td>${esc(k.level)}</td><td>${esc(ets)}</td></tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+}
+
+/* ============================================================
+   渲染 · 智能推荐
+   ============================================================ */
+function refreshAI() {
+  const cid = Number($('#ai-class').value);
+  const sid = Number($('#ai-student').value);
+  if (!cid) return;
+  const students = DB.data.students.filter(s => s.class_id === cid);
+  $('#ai-student').innerHTML = students.map(s =>
+    `<option value="${s.id}">${esc(s.student_no)} · ${esc(dec(s.name_enc))}</option>`).join('');
+  if (students.length && !sid) $('#ai-student').value = students[0].id;
+  loadAIAll();
+}
+function loadAIAll() {
+  const sid = Number($('#ai-student').value);
+  if (!sid) { return; }
+  loadAISimilar(sid);
+  loadAIExplain(sid);
+  loadAIPlan(sid);
+  loadAIBook(sid);
+}
+function loadAISimilar(sid) {
+  const d = recommendSimilar(sid);
+  if (!d.weak.length) {
+    $('#ai-similar-body').innerHTML = `<div class="card"><div class="empty">${esc(d.reason || '暂无推荐')}</div></div>`;
+    return;
+  }
+  $('#ai-similar-body').innerHTML = d.weak.map(w => {
+    const qs = w.questions.length ? w.questions.map(q => {
+      const opts = (q.options || []).map(o => `<div style="padding-left:14px;color:#5a6b82">${esc(o.key)}. ${esc(o.text)}</div>`).join('');
+      const dt = q.difficulty === '基础' ? 'ok' : (q.difficulty === '提升' ? 'warn' : 'info');
+      return `<div class="rec-item">
+        <div class="meta"><span>${esc(q.source || '题库')}</span><span class="tag ${dt}">${esc(q.difficulty || '')}</span></div>
+        <div style="margin:6px 0">${esc(q.content || '')}</div>
+        ${opts}
+        <details style="margin-top:6px">
+          <summary>查看答案与解析</summary>
+          <div style="font-size:12px;line-height:1.8;color:#5a6b82;margin-top:4px">
+            <b>答案：</b>${esc(q.answer || '—')}<br>
+            ${q.analysis ? `<b>解析：</b>${esc(q.analysis)}` : ''}
+          </div>
+        </details>
+      </div>`;
+    }).join('') : '<div class="empty" style="grid-column:1/-1">题库中暂无该知识点的题目，可在「工作台」导入题库 Excel</div>';
+    return `<div class="card">
+      <div class="kp-head">
+        <span class="kp-name">${esc(w.kp)}</span>
+        <span class="tag ${w.level === '薄弱' ? 'bad' : 'warn'}">掌握度 ${fmt(w.mastery, 1)}%</span>
+        <span class="tag info">推荐难度：${esc(w.difficulty)}</span>
+        ${!w.has_enough ? '<span class="tag warn">题库不足</span>' : ''}
+      </div>
+      <div class="rec-list">${qs}</div>
+    </div>`;
+  }).join('');
+}
+function loadAIExplain(sid) {
+  const d = recommendExplanations(sid);
+  if (!d.items.length) {
+    $('#ai-explain-body').innerHTML = '<div class="card"><div class="empty">暂无薄弱知识点</div></div>';
+    return;
+  }
+  $('#ai-explain-body').innerHTML = d.items.map(item => {
+    const r = item.resource;
+    if (!r) return `<div class="card"><h2>${esc(item.kp)}（掌握度 ${fmt(item.mastery, 1)}%）</h2>
+      <div class="empty">该知识点暂无讲解资源</div></div>`;
+    const steps = (r.steps || []).map((s, i) =>
+      `<div style="padding:6px 0 6px 24px;position:relative">
+        <span style="position:absolute;left:0;top:8px;width:18px;height:18px;background:#e8f0fe;color:#2a6df4;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">${i + 1}</span>${esc(s)}
+      </div>`).join('');
+    const focus = (item.focus || []).map(f => `<div class="advice">${esc(f)}</div>`).join('');
+    return `<div class="card">
+      <h2>${esc(item.kp)} · 掌握度 ${fmt(item.mastery, 1)}%</h2>
+      <div style="font-size:12px;color:#7a8699;margin-bottom:8px">教材章节：${esc(r.chapter || '—')}</div>
+      ${focus}
+      <div class="section-title">① 生活化类比引入</div>
+      <p class="explain-p">${esc(r.intro || '')}</p>
+      <div class="section-title">② 图形 / 图表可视化</div>
+      <p class="explain-p">${esc(r.visualize || '')}</p>
+      <div class="section-title">③ 分步讲解</div>
+      <div class="explain-p">${steps}</div>
+      <div class="section-title">④ 错误理解 vs 正确理解</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+        <div style="background:#fdecec;border-radius:8px;padding:10px 14px">
+          <div style="color:#d93636;font-weight:600;margin-bottom:4px">✗ 常见错误</div>
+          <div style="font-size:13px;line-height:1.7">${esc(r.wrong_mind || '')}</div>
+        </div>
+        <div style="background:#e7f8ef;border-radius:8px;padding:10px 14px">
+          <div style="color:#1d9d5c;font-weight:600;margin-bottom:4px">✓ 正确理解</div>
+          <div style="font-size:13px;line-height:1.7">${esc(r.right_mind || '')}</div>
+        </div>
+      </div>
+      <div class="section-title">⑤ 技巧 / 口诀</div>
+      <div class="advice" style="font-size:14px">${esc(r.tips || '')}</div>
+    </div>`;
+  }).join('');
+}
+function loadAIPlan(sid) {
+  const days = parseInt($('#ai-days').value) || 7;
+  const d = generatePlan(sid, days);
+  const tasks = d.plan.tasks || [];
+  if (!tasks.length) {
+    $('#ai-plan-body').innerHTML = `<div class="card"><div class="empty">${esc(d.plan.note || '暂无计划')}</div></div>`;
+    return;
+  }
+  $('#ai-plan-body').innerHTML = `
+    <div class="card"><h2>${days} 天个性化学习计划 · 起始 ${esc(d.plan.start)}</h2>
+      <div class="hint">根据薄弱知识点自动生成。点击「重新生成」按钮可刷新。</div>
+    </div>
+    ${tasks.map(t => `
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:10px">
+          <h2 style="margin:0">第 ${t.day} 天 · ${esc(t.date)}</h2>
+          <span style="font-size:12px;color:#7a8699">${esc(t.goal)}</span>
+        </div>
+        ${t.items.map(it => `
+          <div class="kp-block" style="padding:12px 16px">
+            <div class="kp-head">
+              <span class="kp-name">${esc(it.kp)}</span>
+              <span class="tag ${it.mastery < 60 ? 'bad' : 'warn'}">掌握度 ${fmt(it.mastery, 1)}%</span>
+              <span class="tag info">难度：${esc(it.difficulty)}</span>
+            </div>
+            <div style="font-size:13px;color:#5a6b82;line-height:1.8">
+              · 练习题：${it.practice_count} 道<br>
+              · 重点错误类型：${it.review_errors.length ? it.review_errors.map(esc).join('、') : '无'}<br>
+              · 完成标准：正确率 ≥ 80%，能口述解题步骤
+            </div>
+          </div>`).join('')}
+      </div>`).join('')}`;
+}
+function loadAIBook(sid) {
+  const wrongs = getWrongBook(sid);
+  if (!wrongs.length) {
+    $('#ai-book-body').innerHTML = '<div class="card"><div class="empty">该生暂无错题</div></div>';
+    return;
+  }
+  $('#ai-book-body').innerHTML = `
+    <div class="card">
+      <div class="flex-between">
+        <h2 style="margin:0">错题本（${wrongs.length} 道）</h2>
+        <button class="btn ghost" onclick="exportWrongBookWord()">导出 Word 错题本</button>
+      </div>
+    </div>
+    <div class="card"><div class="scroll" style="max-height:600px">
+      ${wrongs.map(w => `
+        <div class="kp-block">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;color:#7a8699">
+            <div>${esc(w.exam_name)} · 第 ${esc(w.q_no)} 题 · ${esc(w.kp)}
+              ${w.err_type ? `· <span class="tag warn">${esc(w.err_type)}</span>` : ''}</div>
+            <span>${w.full_score} 分</span>
+          </div>
+          <div style="font-size:14px;line-height:1.7;margin-bottom:8px">${esc(w.content)}</div>
+          <div style="font-size:13px;color:#5a6b82;line-height:1.8">
+            <b>你的答案：</b>${esc(w.student_answer || '（未作答）')}<br>
+            <b>正确答案：</b>${esc(w.std_answer || '—')}
+          </div>
+        </div>`).join('')}
+    </div></div>`;
+}
+
+/* ============================================================
+   报告
+   ============================================================ */
+function doReport() {
+  const eid = Number($('#rep-exam').value);
+  const kind = $('#rep-kind').value;
+  if (!eid) { toast('请选择考试'); return; }
+  const exam = DB.find('exams', e => e.id === eid);
+  if (!exam) { toast('考试不存在'); return; }
+  if (kind === 'exam') {
+    exportExamReport(eid, exam);
+  } else if (kind === 'parent') {
+    exportParentLetter(eid, exam);
+  } else if (kind === 'wrongbook') {
+    exportClassWrongBook(eid, exam);
+  }
+}
+
+function exportExamReport(eid, exam) {
+  const scores = DB.data.scores.filter(s => s.exam_id === eid).map(s => s.score);
+  if (!scores.length) { toast('该考试暂无成绩'); return; }
+  const st = stats(scores);
+  const stFull = DB.find('exams', e => e.id === eid).full_score || 100;
+  st.pass_rate = scores.filter(x => x >= stFull * 0.6).length / scores.length * 100;
+  st.excellent_rate = scores.filter(x => x >= stFull * 0.85).length / scores.length * 100;
+  const ranked = [...DB.data.scores.filter(s => s.exam_id === eid)].sort((a, b) => b.score - a.score);
+  const rowsHtml = ranked.slice(0, 100).map((s, i) => {
+    const stu = DB.find('students', x => x.id === s.student_id);
+    return `<tr><td>${i + 1}</td><td>${esc(stu?.student_no || '')}</td>
+      <td>${esc(maskName(dec(stu?.name_enc || '')))}</td><td>${fmt(s.score, 1)}</td></tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${exam.name}成绩分析报告</title>
+  <style>body{font-family:"宋体",serif;padding:40px;line-height:1.8}
+  h1{text-align:center;font-size:22px}h2{font-size:16px;margin-top:22px;border-left:4px solid #2a6df4;padding-left:8px}
+  table{width:100%;border-collapse:collapse;margin:10px 0}
+  th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:13px}
+  th{background:#e8f0fe}</style></head><body>
+  <h1>${esc(exam.name)} 成绩分析报告</h1>
+  <p style="text-align:center;color:#666">科目：${esc(exam.subject)}　日期：${esc(exam.exam_date || '')}</p>
+  <h2>一、总体统计</h2>
+  <table>
+    <tr><th>平均分</th><th>中位数</th><th>标准差</th><th>最高</th><th>最低</th><th>及格率</th><th>优秀率</th></tr>
+    <tr><td>${fmt(st.mean)}</td><td>${fmt(st.median)}</td><td>${fmt(st.std)}</td>
+    <td>${fmt(st.max, 1)}</td><td>${fmt(st.min, 1)}</td>
+    <td>${fmt(st.pass_rate, 1)}%</td><td>${fmt(st.excellent_rate, 1)}%</td></tr>
+  </table>
+  <h2>二、学生成绩（前 100 名）</h2>
+  <table><tr><th>排名</th><th>学号</th><th>姓名</th><th>分数</th></tr>${rowsHtml}</table>
+  <p style="text-align:center;color:#999;margin-top:40px;font-size:12px">
+    生成时间：${new Date().toLocaleString('zh-CN')} · 由 AI教师工作台 生成
+  </p>
+  </body></html>`;
+  openPrint(html);
+}
+
+function exportParentLetter(eid, exam) {
+  const rows = DB.data.scores.filter(s => s.exam_id === eid);
+  if (!rows.length) { toast('该考试暂无成绩'); return; }
+  const scores = rows.map(s => s.score);
+  const st = stats(scores);
+  const full = DB.find('exams', e => e.id === eid).full_score || 100;
+  st.pass_rate = scores.filter(x => x >= full * 0.6).length / scores.length * 100;
+  st.excellent_rate = scores.filter(x => x >= full * 0.85).length / scores.length * 100;
+
+  const weak = analyzeClassWrongByExams([eid]).kp_stats.filter(k => k.wrong_rate >= 30).slice(0, 5);
+
+  const html = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word">
+  <head><meta charset="utf-8"><title>家长会沟通稿</title>
+  <style>body{font-family:"宋体",serif;padding:30px;line-height:1.9;font-size:14px}
+  h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:20px;border-left:4px solid #2a6df4;padding-left:8px}
+  li{margin:4px 0}</style></head><body>
+  <h1>${esc(exam.name)} 家长会沟通稿</h1>
+  <p>时间：${new Date().toLocaleDateString('zh-CN')}</p>
+  <p>科目：${esc(exam.subject)}</p>
+  <h2>一、班级整体情况</h2>
+  <p>本次考试班级平均分 ${fmt(st.mean)}，中位数 ${fmt(st.median)}，标准差 ${fmt(st.std)}，最高分 ${fmt(st.max, 1)}，最低分 ${fmt(st.min, 1)}。及格率 ${fmt(st.pass_rate, 1)}%，优秀率 ${fmt(st.excellent_rate, 1)}%。</p>
+  <h2>二、错题分析</h2>
+  ${weak.length ? `<ul>${weak.map(k => `<li><b>${esc(k.kp)}</b>：错误率 ${fmt(k.wrong_rate, 1)}%，将安排专项讲解与变式训练。</li>`).join('')}</ul>` : '<p>各知识点掌握良好，将进入综合应用训练阶段。</p>'}
+  <h2>三、家校配合建议</h2>
+  <ol>
+    <li>关注孩子的作业完成质量，尤其是错题订正。</li>
+    <li>鼓励孩子建立错题本，每周回顾一次。</li>
+    <li>保持与老师沟通，及时反馈学习困难。</li>
+  </ol>
+  </body></html>`;
+
+  downloadWord(`家长会沟通稿_${exam.name}.doc`, html);
+}
+
+function exportClassWrongBook(eid, exam) {
+  const qs = DB.data.questions.filter(q => q.exam_id === eid);
+  if (!qs.length) { toast('该考试暂无题目'); return; }
+  const d = analyzeClassWrongByExams([eid]);
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>班级错题集</title>
+  <style>body{font-family:"宋体",serif;padding:30px;line-height:1.8}
+  h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:20px;border-left:4px solid #2a6df4;padding-left:8px}
+  table{width:100%;border-collapse:collapse;margin:10px 0}
+  th,td{border:1px solid #ccc;padding:6px 10px;font-size:13px}
+  th{background:#e8f0fe}</style></head><body>
+  <h1>${esc(exam.name)} · 班级错题集</h1>
+  <h2>知识点掌握情况</h2>
+  <table><tr><th>知识点</th><th>错误率</th><th>等级</th><th>错题数</th></tr>
+    ${d.kp_stats.map(k => `<tr><td>${esc(k.kp)}</td><td>${fmt(k.wrong_rate, 1)}%</td>
+      <td>${esc(k.level)}</td><td>${k.wrong}</td></tr>`).join('')}
+  </table>
+  <h2>高频错题（前 20 道）</h2>
+  ${d.hot_questions.slice(0, 20).map((q, i) => `
+    <p><b>${i + 1}. 第${esc(q.q_no)}题（${esc(q.kp)}，错误率 ${fmt(q.wrong_rate, 1)}%）</b><br>
+    ${esc(q.content)}</p>
+  `).join('')}
+  </body></html>`;
+  openPrint(html);
+}
+
+function exportClassWrongBooks() {
+  const cid = Number($('#rep-class').value);
+  if (!cid) { toast('请选择班级'); return; }
+  const students = DB.data.students.filter(s => s.class_id === cid);
+  if (!students.length) { toast('该班暂无学生'); return; }
+  let count = 0;
+  students.forEach((s, i) => {
+    const wrongs = getWrongBook(s.id);
+    if (!wrongs.length) return;
+    setTimeout(() => {
+      const html = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word">
+      <head><meta charset="utf-8"><title>错题本</title>
+      <style>body{font-family:"宋体",serif;padding:30px;line-height:1.8;font-size:14px}
+      h1{text-align:center;font-size:20px}h2{font-size:15px;margin-top:20px}
+      .q{margin:14px 0;padding:10px 14px;border-left:3px solid #2a6df4}
+      .ans{color:#666;font-size:13px}</style></head><body>
+      <h1>错题本 · ${esc(dec(s.name_enc))}</h1>
+      <p>学号：${esc(s.student_no)}　生成时间：${new Date().toLocaleDateString('zh-CN')}</p>
+      <p>共 ${wrongs.length} 道错题</p>
+      ${wrongs.map((w, i) => `
+        <div class="q">
+          <div><b>${i + 1}. [${esc(w.exam_name)}] 第 ${esc(w.q_no)} 题（${esc(w.kp)}）</b></div>
+          <div>${esc(w.content)}</div>
+          <div class="ans">
+            <b>你的答案：</b>${esc(w.student_answer || '（未作答）')}<br>
+            <b>正确答案：</b>${esc(w.std_answer || '—')}<br>
+            ${w.err_type ? `<b>错误类型：</b>${esc(w.err_type)}<br>` : ''}
+          </div>
+        </div>
+      `).join('')}
+      </body></html>`;
+      downloadWord(`错题本_${s.student_no}_${dec(s.name_enc)}.doc`, html);
+      count++;
+    }, i * 300);
+  });
+  toast(`正在生成 ${students.length} 位学生的错题本…`, 3000);
+}
+
+function exportWrongBookWord() {
+  const sid = Number($('#ai-student').value);
+  const stu = DB.find('students', s => s.id === sid);
+  if (!stu) { toast('请选择学生'); return; }
+  const wrongs = getWrongBook(sid);
+  if (!wrongs.length) { toast('该生暂无错题'); return; }
+  const html = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word">
+  <head><meta charset="utf-8"><title>错题本</title>
+  <style>body{font-family:"宋体",serif;padding:30px;line-height:1.8;font-size:14px}
+  h1{text-align:center;font-size:20px}
+  .q{margin:14px 0;padding:10px 14px;border-left:3px solid #2a6df4}
+  .ans{color:#666;font-size:13px}</style></head><body>
+  <h1>错题本 · ${esc(dec(stu.name_enc))}</h1>
+  <p>学号：${esc(stu.student_no)}　生成时间：${new Date().toLocaleDateString('zh-CN')}</p>
+  <p>共 ${wrongs.length} 道错题</p>
+  ${wrongs.map((w, i) => `
+    <div class="q">
+      <div><b>${i + 1}. [${esc(w.exam_name)}] 第 ${esc(w.q_no)} 题（${esc(w.kp)}）</b></div>
+      <div>${esc(w.content)}</div>
+      <div class="ans">
+        <b>你的答案：</b>${esc(w.student_answer || '（未作答）')}<br>
+        <b>正确答案：</b>${esc(w.std_answer || '—')}<br>
+        ${w.err_type ? `<b>错误类型：</b>${esc(w.err_type)}<br>` : ''}
+      </div>
+    </div>
+  `).join('')}
+  </body></html>`;
+  downloadWord(`错题本_${stu.student_no}_${dec(stu.name_enc)}.doc`, html);
+}
+
+function downloadWord(filename, html) {
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function openPrint(html) {
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+/* ============================================================
+   事件绑定
+   ============================================================ */
+$$('nav button').forEach(b => b.onclick = () => {
+  $$('nav button').forEach(x => x.classList.toggle('active', x === b));
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + b.dataset.view));
+  if (b.dataset.view === 'home') refreshAll();
+  if (b.dataset.view === 'scores') refreshSelectors();
+  if (b.dataset.view === 'wrong') refreshSelectors();
+  if (b.dataset.view === 'ai') refreshAI();
+  if (b.dataset.view === 'report') refreshSelectors();
+});
+$$('.tabs button').forEach(b => b.onclick = () => {
+  const parent = b.closest('.view');
+  parent.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  parent.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  if (b.dataset.tab === 'ai-similar') loadAISimilar(Number($('#ai-student').value));
+  if (b.dataset.tab === 'ai-explain') loadAIExplain(Number($('#ai-student').value));
+  if (b.dataset.tab === 'ai-plan') loadAIPlan(Number($('#ai-student').value));
+  if (b.dataset.tab === 'ai-book') loadAIBook(Number($('#ai-student').value));
+});
+
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'sa-class') refreshSessionsFor('#sa-class', '#sa-session', 'sa');
+  if (id === 'sa-session') refreshSubjectOptions('sa');
+  if (id === 'ma-class') refreshSessionsChips('#ma-class', '#ma-sessions');
+  if (id === 'sp-class') refreshStudentsFor('#sp-class', '#sp-student');
+  if (id === 'ws-class') refreshStudentsFor('#ws-class', '#ws-student');
+  if (id === 'ai-class') refreshAI();
+  if (id === 'ai-student') loadAIAll();
+});
+
+$('#f-scores').onchange = e => {
+  const f = e.target.files[0];
+  if (f) importScoresFile(f).catch(err => toast('导入失败：' + err.message));
+  e.target.value = '';
+};
+$('#f-wrongs').onchange = e => {
+  const f = e.target.files[0];
+  if (f) importWrongsFile(f).catch(err => toast('导入失败：' + err.message));
+  e.target.value = '';
+};
+$('#f-restore').onchange = e => {
+  const f = e.target.files[0];
+  if (f) restoreData(f);
+  e.target.value = '';
+};
+
+/* ============================================================
+   启动
+   ============================================================ */
+DB.init();
+refreshAll();
+
+// 每日自动备份提示
+const lastBackup = localStorage.getItem('aitw_last_backup');
+const today = new Date().toISOString().slice(0, 10);
+if (lastBackup !== today && DB.data.students.length > 0) {
+  setTimeout(() => {
+    if (confirm('检测到有新数据。建议导出备份文件保存到安全位置，是否现在导出？')) {
+      backupData();
+      localStorage.setItem('aitw_last_backup', today);
+    } else {
+      localStorage.setItem('aitw_last_backup', today);
+    }
+  }, 2000);
+}
+</script>
+</body>
+</html>

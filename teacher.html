@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI教师工作台</title>
+<style>
+:root{
+    --bg:#F7F5F2;
+    --card:#FFFFFF;
+    --text:#3E3A4E;
+    --muted:#8A8798;
+    --primary:#7D8EB0;
+    --primary-light:#EEF1F7;
+    --primary-dark:#5A6B8C;
+    --secondary:#8FA98F;
+    --secondary-light:#EDF2ED;
+    --accent:#E8907A;
+    --accent-light:#FDF0EC;
+    --border:#E5E2EA;
+    --shadow-sm:0 1px 3px rgba(60,50,80,0.06);
+    --shadow:0 4px 12px rgba(60,50,80,0.08);
+    --shadow-lg:0 8px 24px rgba(60,50,80,0.12);
+    --radius:12px;
+    --radius-sm:8px;
+    --radius-lg:16px;
+    --nav-width:190px;
+    --font-sans:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+    --transition:all 0.2s ease;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+    font-family:var(--font-sans);
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+    font-size:14px;
+    line-height:1.5;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:14px;transition:var(--transition)}
+input,textarea,select{font-family:inherit;font-size:14px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;outline:none;background:#fff;color:var(--text);transition:var(--transition)}
+input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(125,142,176,0.15)}
+.app-container{display:flex;height:100vh}
+/* 左侧导航 */
+.sidebar{
+    width:var(--nav-width);background:var(--card);box-shadow:2px 0 8px rgba(0,0,0,0.03);
+    display:flex;flex-direction:column;padding:20px 0;z-index:10;border-right:1px solid var(--border);
+}
+.logo{
+    padding:0 20px;font-size:20px;font-weight:700;color:var(--primary-dark);margin-bottom:24px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.01em;
+}
+.nav-list{flex:1;overflow-y:auto;padding:0 10px}
+.nav-item{
+    padding:11px 14px;margin:2px 0;border-radius:var(--radius-sm);cursor:pointer;
+    display:flex;align-items:center;font-size:14px;color:var(--muted);
+    transition:var(--transition);font-weight:500;position:relative;
+}
+.nav-item:hover{background:var(--primary-light);color:var(--primary-dark)}
+.nav-item.active{background:var(--primary-light);color:var(--primary-dark);font-weight:600}
+.nav-item .drag-handle{margin-right:10px;color:#C5C1CE;cursor:grab;font-size:12px;opacity:0.7}
+/* 主区域 */
+.main-area{flex:1;padding:24px 28px;overflow-y:auto;position:relative}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;min-height:40px}
+.workbench-title{font-size:24px;font-weight:700;color:var(--text);letter-spacing:-0.01em}
+.teacher-greeting{color:var(--muted);font-size:14px;background:var(--card);padding:8px 16px;border-radius:20px;box-shadow:var(--shadow-sm)}
+/* 首页三栏布局 */
+.home-grid{display:flex;gap:20px;height:calc(100vh - 110px)}
+.home-col{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;overflow-y:auto;border:1px solid var(--border)}
+.home-col.left{flex:2.3;min-width:0}
+.home-col.center{flex:1.5;min-width:0}
+.home-col.right{flex:1.3;min-width:0}
+.card-title{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;color:var(--text)}
+.card-title a{color:var(--primary);font-size:13px;text-decoration:none;font-weight:500}
+.card-title a:hover{text-decoration:underline}
+/* 课表 */
+.schedule-table{width:100%;border-collapse:collapse;font-size:13px}
+.schedule-table th,.schedule-table td{border:1px solid var(--border);padding:6px 4px;text-align:center;vertical-align:middle}
+.schedule-table th{background:var(--primary-light);font-weight:600;color:var(--primary-dark);font-size:12px}
+.schedule-table .today{background:var(--secondary-light);font-weight:600;width:22%;position:relative}
+.schedule-table td{cursor:pointer;transition:var(--transition)}
+.schedule-table td:hover{background:#F5F5F8}
+.schedule-table td small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+/* 待办 */
+.todo-item{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;transition:var(--transition)}
+.todo-item:hover{background:#FCFCFD}
+.todo-check{width:20px;height:20px;border:2px solid var(--primary);border-radius:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;background:#fff;transition:var(--transition)}
+.todo-check.done{background:var(--primary);border-color:var(--primary)}
+.todo-text{flex:1;font-size:13px;word-break:break-word;color:var(--text)}
+.todo-text.done{text-decoration:line-through;color:var(--muted)}
+.todo-priority{font-size:11px;padding:2px 8px;border-radius:12px;background:var(--primary-light);color:var(--primary-dark);font-weight:500}
+.todo-actions{display:flex;gap:4px}
+.todo-actions button{font-size:12px;color:var(--muted);padding:4px 8px;border-radius:6px}
+.todo-actions button:hover{background:var(--primary-light);color:var(--primary-dark)}
+/* 校历 */
+.calendar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:600}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:12px}
+.calendar-weekday{text-align:center;font-weight:600;color:var(--muted);padding:4px 0}
+.calendar-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;position:relative;background:#FAFAFC;transition:var(--transition)}
+.calendar-day:hover{background:var(--primary-light)}
+.calendar-day.other-month{color:#C5C1CE}
+.calendar-day.has-note::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;background:var(--accent);border-radius:50%}
+/* 工具卡片 */
+.tools-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tool-card{display:flex;flex-direction:column;align-items:center;padding:12px 6px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);background:#fff;border:1px solid var(--border)}
+.tool-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--primary-light)}
+.tool-logo{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;margin-bottom:6px;font-size:14px}
+.tool-name{font-size:12px;text-align:center;word-break:break-all;color:var(--text)}
+/* 按钮 */
+.btn{padding:9px 16px;border-radius:var(--radius-sm);background:var(--primary);color:#fff;font-size:13px;font-weight:500;transition:var(--transition);border:1px solid transparent;white-space:nowrap}
+.btn:hover{background:var(--primary-dark);box-shadow:var(--shadow-sm)}
+.btn.secondary{background:var(--secondary)}
+.btn.secondary:hover{background:#7A9A7A}
+.btn.danger{background:var(--accent)}
+.btn.danger:hover{background:#D97F6A}
+.btn.outline{background:transparent;border:1px solid var(--primary);color:var(--primary)}
+.btn.outline:hover{background:var(--primary-light)}
+.btn-sm{padding:6px 12px;font-size:12px}
+/* 弹窗 */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(50,40,60,0.4);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal{background:#fff;border-radius:var(--radius-lg);padding:24px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);border:1px solid var(--border)}
+.modal h3{font-size:18px;font-weight:600;margin-bottom:20px;color:var(--text)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;position:sticky;bottom:0;background:#fff;padding-top:10px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--muted)}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+/* 通知生成 */
+.notice-output{background:#F4F7F4;border-radius:var(--radius-sm);padding:16px;white-space:pre-wrap;font-size:13px;line-height:1.6;margin:10px 0;border-left:3px solid var(--secondary)}
+/* 成绩表格 */
+.score-table{width:100%;border-collapse:collapse;font-size:12px;border-radius:var(--radius-sm);overflow:hidden}
+.score-table th,.score-table td{border:1px solid var(--border);padding:8px 6px;text-align:center}
+.score-table th{background:var(--primary-light);font-weight:600;color:var(--primary-dark)}
+.score-table tr:hover td{background:#FCFCFD}
+/* 助手 */
+.assistant-widget{position:fixed;bottom:24px;right:24px;z-index:50}
+.assistant-button{width:56px;height:56px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;box-shadow:var(--shadow-lg);transition:var(--transition)}
+.assistant-button:hover{transform:scale(1.05);background:var(--primary-dark)}
+.assistant-panel{position:absolute;bottom:70px;right:0;width:340px;background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:20px;display:none;border:1px solid var(--border)}
+.assistant-panel.open{display:block}
+/* 空状态 */
+.empty-state{text-align:center;padding:30px 20px;color:var(--muted);font-size:13px}
+.empty-state .empty-icon{font-size:36px;margin-bottom:10px;opacity:0.5}
+/* 拖拽中 */
+.dragging{opacity:0.5}
+/* 响应式 */
+@media (max-width:1280px){
+    :root{--nav-width:160px}
+    .home-grid{gap:14px}
+    .home-col{padding:14px}
+}
+@media (max-width:1024px){
+    .home-grid{flex-direction:column;height:auto}
+}
+</style>
+</head>
+<body>
+<div class="app-container">
+    <!-- 左侧导航 -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo" id="workbenchName">AI教师工作台</div>
+        <div class="nav-list" id="navList"></div>
+    </div>
+    <!-- 主区域 -->
+    <div class="main-area" id="mainArea">
+        <div class="top-bar">
+            <div class="workbench-title" id="mainTitle">工作台</div>
+            <div class="teacher-greeting" id="teacherGreeting">你好，老师</div>
+        </div>
+        <div id="contentArea"></div>
+    </div>
+</div>
+
+<!-- 弹窗容器 -->
+<div id="modalRoot"></div>
+
+<!-- 本地助手 -->
+<div class="assistant-widget">
+    <div class="assistant-panel" id="assistantPanel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <strong id="assistantName" style="color:var(--text)">小助手</strong>
+            <button onclick="toggleAssistant()" style="font-size:18px;color:var(--muted)">✕</button>
+        </div>
+        <input type="text" id="assistantInput" placeholder="搜索待办、学生、课表..." style="width:100%;margin-bottom:10px" onkeypress="if(event.key==='Enter') assistantSearch()">
+        <button class="btn btn-sm" onclick="assistantSearch()">搜索</button>
+        <div id="assistantResult" style="margin-top:10px;font-size:13px;max-height:200px;overflow-y:auto"></div>
+    </div>
+    <div class="assistant-button" onclick="toggleAssistant()">🤖</div>
+</div>
+
+<script>
+// ==================== 全局状态 ====================
+let state = {
+    settings: {
+        workbenchName: 'AI教师工作台',
+        teacherName: '老师',
+        theme: 'default',
+        navOrder: ['home','schedule','todo','calendar','tools','lesson','students','scores','notice','ai','settings'],
+        visibleModules: ['home','schedule','todo','calendar','tools','lesson','students','scores','notice','ai','settings'],
+        homeModules: ['schedule','todo','calendar','tools'],
+        assistantName: '小助手'
+    },
+    schedule: [],
+    todos: [],
+    calendarNotes: {},
+    termProgress: '',
+    tools: [],
+    lesson: {
+        links: [],
+        templates: [],
+        records: []
+    },
+    classes: [],
+    exams: [],
+    notices: [],
+    aiCategories: ['常用AI','办公','学习'],
+    aiApps: [],
+};
+
+function initDefaultData() {
+    state.tools = [
+        {id:'t1', name:'DeepSeek', logo:'D', color:'#5B6C9E', url:'https://chat.deepseek.com'},
+        {id:'t2', name:'豆包', logo:'豆', color:'#E8907A', url:'https://www.doubao.com'},
+        {id:'t3', name:'Kimi', logo:'K', color:'#7D9B8A', url:'https://kimi.moonshot.cn'},
+        {id:'t4', name:'腾讯元宝', logo:'腾', color:'#8E7DBE', url:'https://yuanbao.tencent.com'},
+        {id:'t5', name:'通义千问', logo:'通', color:'#5B8DEF', url:'https://tongyi.aliyun.com'},
+        {id:'t6', name:'WorkBuddy', logo:'W', color:'#E8A87C', url:'https://workbuddy.ai'},
+    ];
+    state.aiApps = [
+        {id:'a1', name:'DeepSeek', desc:'深度求索', logo:'D', color:'#5B6C9E', url:'https://chat.deepseek.com', category:'常用AI'},
+        {id:'a2', name:'豆包', desc:'字节跳动', logo:'豆', color:'#E8907A', url:'https://www.doubao.com', category:'常用AI'},
+        {id:'a3', name:'Kimi', desc:'月之暗面', logo:'K', color:'#7D9B8A', url:'https://kimi.moonshot.cn', category:'常用AI'},
+        {id:'a4', name:'腾讯元宝', desc:'腾讯混元', logo:'腾', color:'#8E7DBE', url:'https://yuanbao.tencent.com', category:'常用AI'},
+        {id:'a5', name:'通义千问', desc:'阿里云', logo:'通', color:'#5B8DEF', url:'https://tongyi.aliyun.com', category:'常用AI'},
+        {id:'a6', name:'文心一言', desc:'百度', logo:'文', color:'#4E6EF2', url:'https://yiyan.baidu.com', category:'常用AI'},
+    ];
+    state.lesson.templates = [
+        {id:'tp1', name:'常规听课记录', desc:'适用于日常听课', isSystem:true, fields:[
+            {id:'f1', label:'教学目标', type:'text'},
+            {id:'f2', label:'教学过程', type:'textarea'},
+            {id:'f3', label:'教学亮点', type:'textarea'},
+            {id:'f4', label:'改进建议', type:'textarea'}
+        ]},
+        {id:'tp2', name:'公开课观察记录', desc:'适用于公开课', isSystem:true, fields:[
+            {id:'f1', label:'课堂导入', type:'text'},
+            {id:'f2', label:'师生互动', type:'textarea'},
+            {id:'f3', label:'评价方式', type:'text'},
+            {id:'f4', label:'总体评价', type:'textarea'}
+        ]},
+    ];
+    state.notices = [
+        {id:'n1', name:'放假通知', category:'通用', content:'各位家长，大家好！\n\n根据学校安排，{时间}将放假{事项}。请家长合理安排孩子的学习和生活，注意安全。\n\n{注意内容}\n\n感谢配合！'},
+        {id:'n2', name:'防溺水通知', category:'安全', content:'各位家长，大家好！\n\n天气炎热，请务必加强对孩子的防溺水教育，做到“六不”：\n1.不私自下水游泳\n2.不擅自与他人结伴游泳\n3.不在无家长带领下游泳\n4.不到无安全设施水域游泳\n5.不到不熟悉水域游泳\n6.不熟悉水性不擅自施救\n\n{注意内容}\n\n感谢配合！'},
+        {id:'n3', name:'收费通知', category:'财务', content:'各位家长，大家好！\n\n本学期{事项}费用共计{金额}元，请于{时间}前完成缴纳。\n\n缴费方式：{地点}\n\n{注意内容}\n\n感谢配合！'},
+        {id:'n4', name:'调课通知', category:'教学', content:'各位家长，大家好！\n\n因{事项}，{时间}的{课程}调至{地点}进行，请提醒孩子按时上课。\n\n{注意内容}\n\n感谢配合！'},
+        {id:'n5', name:'节假日提醒', category:'通用', content:'各位家长，大家好！\n\n{时间}是{事项}，请家长关注孩子假期安全，合理安排作息。\n\n{注意内容}\n\n祝假期愉快！'},
+        {id:'n6', name:'家长会通知', category:'会议', content:'各位家长，大家好！\n\n我校将于{时间}在{地点}召开家长会，主题为“{事项}”。请您准时参加。\n\n{注意内容}\n\n期待您的到来！'},
+    ];
+    state.classes = [{id:'c1', name:'三年级1班', students:[]}];
+    state.exams = [];
+    state.calendarNotes = {};
+    state.termProgress = '';
+    state.schedule = [];
+    state.todos = [];
+    state.lesson.links = [];
+    state.lesson.records = [];
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+function loadState() {
+    const saved = localStorage.getItem('aiTeacherWorkbench');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            state = {...state, ...parsed, settings: {...state.settings, ...parsed.settings}};
+        } catch(e) { console.error('加载数据失败', e); initDefaultData(); }
+    } else {
+        initDefaultData();
+    }
+}
+function saveState() { localStorage.setItem('aiTeacherWorkbench', JSON.stringify(state)); }
+function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function getDayName(day) { return ['','周一','周二','周三','周四','周五'][day] || ''; }
+
+// 弹窗系统
+function openModal(html, onSave) {
+    const modalRoot = document.getElementById('modalRoot');
+    modalRoot.innerHTML = `
+        <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+            <div class="modal">
+                ${html}
+                <div class="modal-footer">
+                    <button class="btn outline" onclick="closeModal()">取消</button>
+                    <button class="btn" id="modalSaveBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('modalSaveBtn').onclick = onSave;
+}
+function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
+
+// ==================== 导航渲染 ====================
+const moduleNames = {
+    home:'工作台', schedule:'课表', todo:'待办', calendar:'校历', tools:'常用工具',
+    lesson:'日常备课', students:'学生名册', scores:'成绩分析', notice:'家校沟通', ai:'AI与应用', settings:'工作区管理'
+};
+function renderNav() {
+    const navList = document.getElementById('navList');
+    const order = state.settings.navOrder.filter(m => state.settings.visibleModules.includes(m));
+    navList.innerHTML = order.map(m => `
+        <div class="nav-item ${currentModule === m ? 'active' : ''}" data-module="${m}" draggable="true">
+            <span class="drag-handle">⠿</span>${moduleNames[m] || m}
+        </div>
+    `).join('');
+    let draggedItem = null;
+    navList.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('dragstart', e => { draggedItem = item; item.classList.add('dragging'); });
+        item.addEventListener('dragend', e => { item.classList.remove('dragging'); draggedItem = null; });
+        item.addEventListener('dragover', e => {
+            e.preventDefault();
+            const target = e.target.closest('.nav-item');
+            if (target && target !== draggedItem) {
+                const rect = target.getBoundingClientRect();
+                const next = (e.clientY - rect.top) / rect.height > 0.5;
+                navList.insertBefore(draggedItem, next ? target.nextSibling : target);
+            }
+        });
+        item.addEventListener('drop', e => {
+            e.preventDefault();
+            const items = [...navList.querySelectorAll('.nav-item')];
+            state.settings.navOrder = items.map(i => i.dataset.module);
+            saveState(); renderNav(); renderCurrentModule();
+        });
+        item.addEventListener('click', () => switchModule(item.dataset.module));
+    });
+}
+let currentModule = 'home';
+function switchModule(module) { currentModule = module; renderNav(); renderCurrentModule(); }
+function renderCurrentModule() {
+    const content = document.getElementById('contentArea');
+    document.getElementById('mainTitle').textContent = moduleNames[currentModule] || currentModule;
+    document.getElementById('teacherGreeting').textContent = `你好，${state.settings.teacherName}`;
+    document.getElementById('workbenchName').textContent = state.settings.workbenchName;
+    switch(currentModule) {
+        case 'home': renderHome(content); break;
+        case 'schedule': renderScheduleModule(content); break;
+        case 'todo': renderTodoModule(content); break;
+        case 'calendar': renderCalendarModule(content); break;
+        case 'tools': renderToolsModule(content); break;
+        case 'lesson': renderLessonModule(content); break;
+        case 'students': renderStudentsModule(content); break;
+        case 'scores': renderScoresModule(content); break;
+        case 'notice': renderNoticeModule(content); break;
+        case 'ai': renderAiModule(content); break;
+        case 'settings': renderSettingsModule(content); break;
+        default: renderHome(content);
+    }
+}
+
+// ==================== 首页工作台 ====================
+function renderHome(container) {
+    const visibleHome = state.settings.homeModules.filter(m => state.settings.visibleModules.includes(m));
+    let leftCol = '', centerCol = '', rightCol = '';
+    if (visibleHome.includes('schedule')) {
+        leftCol += `<div class="card-title">📅 本周课表 <a href="#" onclick="event.preventDefault();switchModule('schedule')">查看与调整</a></div>`;
+        leftCol += renderSchedulePreview();
+    }
+    if (visibleHome.includes('calendar')) {
+        leftCol += `<div class="card-title" style="margin-top:16px">📆 校历与备忘 <a href="#" onclick="event.preventDefault();switchModule('calendar')">学期进度</a></div>`;
+        leftCol += renderCalendarPreview();
+    }
+    if (visibleHome.includes('todo')) {
+        centerCol += `<div class="card-title">✅ 待办清单 <a href="#" onclick="event.preventDefault();switchModule('todo')">查看全部</a></div>`;
+        centerCol += renderTodoPreview();
+    }
+    if (visibleHome.includes('tools')) {
+        rightCol += `<div class="card-title">🧰 常用工具 <a href="#" onclick="event.preventDefault();switchModule('tools')">管理</a></div>`;
+        rightCol += renderToolsPreview();
+    }
+    container.innerHTML = `
+        <div class="home-grid">
+            <div class="home-col left">${leftCol || '<div class="empty-state"><div class="empty-icon">📭</div>暂无模块</div>'}</div>
+            <div class="home-col center">${centerCol || '<div class="empty-state"><div class="empty-icon">📭</div>暂无模块</div>'}</div>
+            <div class="home-col right">${rightCol || '<div class="empty-state"><div class="empty-icon">📭</div>暂无模块</div>'}</div>
+        </div>
+    `;
+}
+
+function renderSchedulePreview() {
+    const today = new Date().getDay();
+    const todayDay = today >=1 && today <=5 ? today : 1;
+    let html = '<table class="schedule-table"><tr><th style="width:50px">节次</th>';
+    for (let d=1; d<=5; d++) html += `<th class="${d===todayDay?'today':''}">${getDayName(d)}</th>`;
+    html += '</tr>';
+    for (let p=1; p<=10; p++) {
+        html += `<tr><td style="color:var(--muted);font-size:12px">第${p}节</td>`;
+        for (let d=1; d<=5; d++) {
+            const item = state.schedule.find(s => s.day===d && s.period===p);
+            const content = item ? `${item.courseName}<small>${item.className}</small>` : '';
+            html += `<td class="${d===todayDay?'today':''}" onclick="event.stopPropagation();showScheduleDetail(${d},${p})">${content}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    return html;
+}
+function showScheduleDetail(day, period) {
+    const item = state.schedule.find(s => s.day===day && s.period===period);
+    if (!item) { alert('该节次暂无课程'); return; }
+    openModal(`
+        <h3>课程详情</h3>
+        <p><strong>星期：</strong>${getDayName(day)}</p>
+        <p><strong>节次：</strong>第${period}节</p>
+        <p><strong>课程：</strong>${escapeHtml(item.courseName)}</p>
+        <p><strong>班级：</strong>${escapeHtml(item.className)}</p>
+        <p><strong>时间：</strong>${escapeHtml(item.time)}</p>
+        <p><strong>地点：</strong>${escapeHtml(item.location)}</p>
+    `, ()=>{closeModal();});
+}
+
+function renderTodoPreview() {
+    const activeTodos = state.todos.filter(t => !t.done).slice(0, 6);
+    let html = '';
+    activeTodos.forEach(todo => {
+        html += `<div class="todo-item">
+            <div class="todo-check" onclick="toggleTodo('${todo.id}')">✓</div>
+            <div class="todo-text">${escapeHtml(todo.text)}</div>
+            <span class="todo-priority">${todo.priority || '中'}</span>
+        </div>`;
+    });
+    if (!html) html = '<div class="empty-state"><div class="empty-icon">🎉</div>暂无待办，点击下方新增</div>';
+    return html;
+}
+
+function renderCalendarPreview() {
+    const now = new Date();
+    const year = now.getFullYear(), month = now.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    let html = `<div class="calendar-header"><span>${year}年${month+1}月</span></div>`;
+    html += '<div class="calendar-grid">';
+    ['日','一','二','三','四','五','六'].forEach(d => html += `<div class="calendar-weekday">${d}</div>`);
+    for (let i=0; i<firstDay; i++) html += '<div></div>';
+    for (let day=1; day<=daysInMonth; day++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const hasNote = state.calendarNotes[dateStr] ? 'has-note' : '';
+        html += `<div class="calendar-day ${hasNote}" onclick="switchModule('calendar');openCalendarNote('${dateStr}')">${day}</div>`;
+    }
+    html += '</div>';
+    return html;
+}
+
+function renderToolsPreview() {
+    let html = '<div class="tools-grid">';
+    state.tools.slice(0, 9).forEach(tool => {
+        html += `<div class="tool-card" onclick="openToolUrl('${tool.id}')">
+            <div class="tool-logo" style="background:${tool.color}">${escapeHtml(tool.logo)}</div>
+            <div class="tool-name">${escapeHtml(tool.name)}</div>
+        </div>`;
+    });
+    html += '</div>';
+    return html;
+}
+
+function toggleTodo(id) {
+    const todo = state.todos.find(t => t.id === id);
+    if (todo) { todo.done = !todo.done; saveState(); renderCurrentModule(); }
+}
+function openToolUrl(id) {
+    const tool = state.tools.find(t => t.id === id);
+    if (tool && tool.url) {
+        let url = tool.url;
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        window.open(url, '_blank');
+    }
+}
+
+// ==================== 课表模块 ====================
+function renderScheduleModule(container) {
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+            <h3 style="font-size:18px">课表编辑</h3>
+            <button class="btn" onclick="addScheduleItem()">＋ 新增课程</button>
+        </div>
+        ${renderSchedulePreview()}
+        <p style="margin-top:10px;font-size:12px;color:var(--muted)">点击课表格子查看详情，点击“新增课程”添加。</p>
+        <div style="margin-top:20px">
+            <h4 style="margin-bottom:10px">课程列表</h4>
+            ${state.schedule.map(item => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px">
+                    <span>${getDayName(item.day)} 第${item.period}节 ${item.courseName} (${item.className})</span>
+                    <span style="display:flex;gap:6px">
+                        <button class="btn btn-sm outline" onclick="editScheduleItem('${item.id}')">编辑</button>
+                        <button class="btn btn-sm danger" onclick="deleteScheduleItem('${item.id}')">删除</button>
+                    </span>
+                </div>
+            `).join('') || '<div class="empty-state"><div class="empty-icon">📅</div>暂无课程</div>'}
+        </div>
+    `;
+}
+function addScheduleItem() {
+    openModal(`
+        <h3>新增课程</h3>
+        <div class="form-row">
+            <div class="form-group"><label>星期</label><select id="sDay">${[1,2,3,4,5].map(d=>`<option value="${d}">${getDayName(d)}</option>`).join('')}</select></div>
+            <div class="form-group"><label>节次</label><select id="sPeriod">${Array.from({length:10},(_,i)=>`<option value="${i+1}">第${i+1}节</option>`).join('')}</select></div>
+        </div>
+        <div class="form-group"><label>课程名称</label><input id="sCourse" placeholder="如：语文"></div>
+        <div class="form-group"><label>班级</label><input id="sClass" placeholder="如：三年级1班"></div>
+        <div class="form-group"><label>上课时间</label><input id="sTime" placeholder="如：08:00-08:40"></div>
+        <div class="form-group"><label>上课地点</label><input id="sLocation" placeholder="如：教学楼301"></div>
+    `, () => {
+        const item = {
+            id: uid(),
+            day: parseInt(document.getElementById('sDay').value),
+            period: parseInt(document.getElementById('sPeriod').value),
+            courseName: document.getElementById('sCourse').value,
+            className: document.getElementById('sClass').value,
+            time: document.getElementById('sTime').value,
+            location: document.getElementById('sLocation').value
+        };
+        if (!item.courseName) { alert('请输入课程名称'); return; }
+        state.schedule.push(item);
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function editScheduleItem(id) {
+    const item = state.schedule.find(s => s.id === id);
+    if (!item) return;
+    openModal(`
+        <h3>编辑课程</h3>
+        <div class="form-row">
+            <div class="form-group"><label>星期</label><select id="sDay">${[1,2,3,4,5].map(d=>`<option value="${d}" ${d===item.day?'selected':''}>${getDayName(d)}</option>`).join('')}</select></div>
+            <div class="form-group"><label>节次</label><select id="sPeriod">${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${i+1===item.period?'selected':''}>第${i+1}节</option>`).join('')}</select></div>
+        </div>
+        <div class="form-group"><label>课程名称</label><input id="sCourse" value="${escapeHtml(item.courseName)}"></div>
+        <div class="form-group"><label>班级</label><input id="sClass" value="${escapeHtml(item.className)}"></div>
+        <div class="form-group"><label>上课时间</label><input id="sTime" value="${escapeHtml(item.time)}"></div>
+        <div class="form-group"><label>上课地点</label><input id="sLocation" value="${escapeHtml(item.location)}"></div>
+    `, () => {
+        item.day = parseInt(document.getElementById('sDay').value);
+        item.period = parseInt(document.getElementById('sPeriod').value);
+        item.courseName = document.getElementById('sCourse').value;
+        item.className = document.getElementById('sClass').value;
+        item.time = document.getElementById('sTime').value;
+        item.location = document.getElementById('sLocation').value;
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteScheduleItem(id) {
+    if (confirm('确认删除此课程？')) {
+        state.schedule = state.schedule.filter(s => s.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+
+// ==================== 待办模块 ====================
+function renderTodoModule(container) {
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+            <h3 style="font-size:18px">待办清单</h3>
+            <button class="btn" onclick="addTodo()">＋ 新增待办</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+            <button class="btn btn-sm ${todoFilter==='active'?'':'outline'}" onclick="setTodoFilter('active')">进行中</button>
+            <button class="btn btn-sm ${todoFilter==='done'?'':'outline'}" onclick="setTodoFilter('done')">已完成</button>
+        </div>
+        <div id="todoList"></div>
+    `;
+    renderTodoList();
+}
+let todoFilter = 'active';
+function setTodoFilter(f) { todoFilter = f; renderCurrentModule(); }
+function renderTodoList() {
+    const listEl = document.getElementById('todoList');
+    if (!listEl) return;
+    const filtered = state.todos.filter(t => todoFilter==='active' ? !t.done : t.done);
+    listEl.innerHTML = filtered.map(todo => `
+        <div class="todo-item">
+            <div class="todo-check ${todo.done?'done':''}" onclick="toggleTodo('${todo.id}')">${todo.done?'✓':''}</div>
+            <div class="todo-text ${todo.done?'done':''}">${escapeHtml(todo.text)}</div>
+            <span class="todo-priority">${todo.priority || '中'}</span>
+            <div class="todo-actions">
+                <button onclick="editTodo('${todo.id}')">编辑</button>
+                <button onclick="deleteTodo('${todo.id}')">删除</button>
+            </div>
+        </div>
+    `).join('') || '<div class="empty-state"><div class="empty-icon">🎉</div>暂无待办</div>';
+}
+function addTodo() {
+    openModal(`
+        <h3>新增待办</h3>
+        <div class="form-group"><label>事项</label><input id="todoText" placeholder="请输入事项"></div>
+        <div class="form-row">
+            <div class="form-group"><label>日期</label><input type="date" id="todoDate"></div>
+            <div class="form-group"><label>时间</label><input type="time" id="todoTime"></div>
+        </div>
+        <div class="form-group"><label>优先级</label><select id="todoPriority"><option>高</option><option selected>中</option><option>低</option></select></div>
+        <div class="form-group"><label>备注</label><textarea id="todoNote" rows="2"></textarea></div>
+    `, () => {
+        const text = document.getElementById('todoText').value.trim();
+        if (!text) { alert('请输入事项'); return; }
+        state.todos.push({id:uid(), text, date:document.getElementById('todoDate').value, time:document.getElementById('todoTime').value, priority:document.getElementById('todoPriority').value, note:document.getElementById('todoNote').value, done:false});
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function editTodo(id) {
+    const todo = state.todos.find(t => t.id === id);
+    if (!todo) return;
+    openModal(`
+        <h3>编辑待办</h3>
+        <div class="form-group"><label>事项</label><input id="todoText" value="${escapeHtml(todo.text)}"></div>
+        <div class="form-row">
+            <div class="form-group"><label>日期</label><input type="date" id="todoDate" value="${todo.date}"></div>
+            <div class="form-group"><label>时间</label><input type="time" id="todoTime" value="${todo.time}"></div>
+        </div>
+        <div class="form-group"><label>优先级</label><select id="todoPriority">${['高','中','低'].map(p=>`<option ${p===todo.priority?'selected':''}>${p}</option>`).join('')}</select></div>
+        <div class="form-group"><label>备注</label><textarea id="todoNote" rows="2">${escapeHtml(todo.note)}</textarea></div>
+    `, () => {
+        todo.text = document.getElementById('todoText').value.trim();
+        todo.date = document.getElementById('todoDate').value;
+        todo.time = document.getElementById('todoTime').value;
+        todo.priority = document.getElementById('todoPriority').value;
+        todo.note = document.getElementById('todoNote').value;
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteTodo(id) {
+    if (confirm('确认删除此待办？')) {
+        state.todos = state.todos.filter(t => t.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+
+// ==================== 校历模块 ====================
+function renderCalendarModule(container) {
+    const now = new Date();
+    const year = now.getFullYear(), month = now.getMonth();
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+            <h3 style="font-size:18px">校历与备忘</h3>
+            <div>
+                <button class="btn btn-sm outline" onclick="changeMonth(-1)">上个月</button>
+                <span style="margin:0 10px;font-weight:500">${year}年${month+1}月</span>
+                <button class="btn btn-sm outline" onclick="changeMonth(1)">下个月</button>
+            </div>
+        </div>
+        <div id="calendarFull"></div>
+        <div style="margin-top:20px">
+            <h4 style="margin-bottom:10px">学期进度</h4>
+            <textarea id="termProgressInput" rows="3" style="width:100%" onchange="saveTermProgress()">${escapeHtml(state.termProgress)}</textarea>
+        </div>
+    `;
+    renderCalendarFull(year, month);
+}
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+function changeMonth(delta) {
+    calMonth += delta;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCurrentModule();
+}
+function renderCalendarFull(year, month) {
+    const container = document.getElementById('calendarFull');
+    if (!container) return;
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    let html = '<div class="calendar-grid">';
+    ['日','一','二','三','四','五','六'].forEach(d => html += `<div class="calendar-weekday">${d}</div>`);
+    for (let i=0; i<firstDay; i++) html += '<div></div>';
+    for (let day=1; day<=daysInMonth; day++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const hasNote = state.calendarNotes[dateStr] ? 'has-note' : '';
+        html += `<div class="calendar-day ${hasNote}" onclick="openCalendarNote('${dateStr}')">${day}</div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+function openCalendarNote(dateStr) {
+    const note = state.calendarNotes[dateStr] || '';
+    openModal(`
+        <h3>${dateStr} 备忘</h3>
+        <div class="form-group"><label>备注内容</label><textarea id="noteContent" rows="4">${escapeHtml(note)}</textarea></div>
+    `, () => {
+        const content = document.getElementById('noteContent').value.trim();
+        if (content) state.calendarNotes[dateStr] = content;
+        else delete state.calendarNotes[dateStr];
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function saveTermProgress() {
+    state.termProgress = document.getElementById('termProgressInput').value;
+    saveState();
+}
+
+// ==================== 常用工具模块 ====================
+function renderToolsModule(container) {
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+            <h3 style="font-size:18px">常用工具管理</h3>
+            <button class="btn" onclick="addTool()">＋ 新增工具</button>
+        </div>
+        <div class="tools-grid" style="grid-template-columns:repeat(4,1fr);gap:12px">
+            ${state.tools.map(tool => `
+                <div class="tool-card" onclick="openToolUrl('${tool.id}')">
+                    <div class="tool-logo" style="background:${tool.color}">${escapeHtml(tool.logo)}</div>
+                    <div class="tool-name">${escapeHtml(tool.name)}</div>
+                    <div style="margin-top:6px;display:flex;gap:4px">
+                        <button class="btn btn-sm outline" onclick="event.stopPropagation();editTool('${tool.id}')">编辑</button>
+                        <button class="btn btn-sm danger" onclick="event.stopPropagation();deleteTool('${tool.id}')">删除</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+function addTool() {
+    openModal(`
+        <h3>新增工具</h3>
+        <div class="form-group"><label>名称</label><input id="toolName" placeholder="工具名称"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Logo简写</label><input id="toolLogo" placeholder="如：A" maxlength="2"></div>
+            <div class="form-group"><label>颜色</label><input type="color" id="toolColor" value="#7D8EB0"></div>
+        </div>
+        <div class="form-group"><label>网址</label><input id="toolUrl" placeholder="如：https://example.com"></div>
+    `, () => {
+        const name = document.getElementById('toolName').value.trim();
+        if (!name) { alert('请输入名称'); return; }
+        state.tools.push({id:uid(), name, logo:document.getElementById('toolLogo').value || name[0], color:document.getElementById('toolColor').value, url:document.getElementById('toolUrl').value});
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function editTool(id) {
+    const tool = state.tools.find(t => t.id === id);
+    if (!tool) return;
+    openModal(`
+        <h3>编辑工具</h3>
+        <div class="form-group"><label>名称</label><input id="toolName" value="${escapeHtml(tool.name)}"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Logo简写</label><input id="toolLogo" value="${escapeHtml(tool.logo)}" maxlength="2"></div>
+            <div class="form-group"><label>颜色</label><input type="color" id="toolColor" value="${tool.color}"></div>
+        </div>
+        <div class="form-group"><label>网址</label><input id="toolUrl" value="${escapeHtml(tool.url)}"></div>
+    `, () => {
+        tool.name = document.getElementById('toolName').value.trim();
+        tool.logo = document.getElementById('toolLogo').value || tool.name[0];
+        tool.color = document.getElementById('toolColor').value;
+        tool.url = document.getElementById('toolUrl').value;
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteTool(id) {
+    if (confirm('确认删除此工具？')) {
+        state.tools = state.tools.filter(t => t.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+
+// ==================== 日常备课模块 ====================
+function renderLessonModule(container) {
+    const tabs = ['资源平台','听课','公开课','听课模板','听课记录'];
+    const activeTab = lessonTab || '资源平台';
+    container.innerHTML = `
+        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+            ${tabs.map(t => `<button class="btn btn-sm ${activeTab===t?'':'outline'}" onclick="setLessonTab('${t}')">${t}</button>`).join('')}
+        </div>
+        <div id="lessonContent"></div>
+    `;
+    renderLessonContent(activeTab);
+}
+let lessonTab = '资源平台';
+function setLessonTab(tab) { lessonTab = tab; renderCurrentModule(); }
+function renderLessonContent(tab) {
+    const content = document.getElementById('lessonContent');
+    if (!content) return;
+    if (tab === '资源平台' || tab === '听课' || tab === '公开课') {
+        const category = tab === '资源平台' ? 'resource' : tab === '听课' ? 'observe' : 'open';
+        const links = state.lesson.links.filter(l => l.category === category);
+        content.innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+                <h4 style="font-size:16px">${tab}链接</h4>
+                <button class="btn btn-sm" onclick="addLessonLink('${category}')">＋ 新增链接</button>
+            </div>
+            ${links.map(link => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:10px;background:#fff">
+                    <div style="flex:1">
+                        <strong>${escapeHtml(link.name)}</strong>
+                        <div style="font-size:12px;color:var(--muted)">${escapeHtml(link.desc)}</div>
+                        <div style="font-size:12px;color:var(--primary);cursor:pointer" onclick="openLessonUrl('${link.id}')">${escapeHtml(link.url)}</div>
+                    </div>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-sm outline" onclick="editLessonLink('${link.id}')">编辑</button>
+                        <button class="btn btn-sm danger" onclick="deleteLessonLink('${link.id}')">删除</button>
+                    </div>
+                </div>
+            `).join('') || '<div class="empty-state"><div class="empty-icon">🔗</div>暂无链接</div>'}
+        `;
+    } else if (tab === '听课模板') {
+        content.innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+                <h4 style="font-size:16px">听课模板</h4>
+                <button class="btn btn-sm" onclick="addLessonTemplate()">＋ 新建模板</button>
+            </div>
+            ${state.lesson.templates.map(tpl => `
+                <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;background:#fff">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <strong>${escapeHtml(tpl.name)} ${tpl.isSystem?'<span style="font-size:11px;color:var(--muted)">(系统)</span>':''}</strong>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn btn-sm outline" onclick="editLessonTemplate('${tpl.id}')">编辑</button>
+                            <button class="btn btn-sm" onclick="useTemplate('${tpl.id}')">使用模板</button>
+                            ${!tpl.isSystem ? `<button class="btn btn-sm danger" onclick="deleteLessonTemplate('${tpl.id}')">删除</button>` : ''}
+                        </div>
+                    </div>
+                    <div style="font-size:13px;color:var(--muted);margin-top:6px">${escapeHtml(tpl.desc)}</div>
+                    <div style="margin-top:6px;font-size:12px">字段：${tpl.fields.map(f=>f.label).join('、')}</div>
+                </div>
+            `).join('') || '<div class="empty-state"><div class="empty-icon">📋</div>暂无模板</div>'}
+        `;
+    } else if (tab === '听课记录') {
+        content.innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+                <h4 style="font-size:16px">我的听课记录</h4>
+            </div>
+            ${state.lesson.records.map(rec => `
+                <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;background:#fff">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <strong>${escapeHtml(rec.topic)}</strong>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn btn-sm outline" onclick="viewLessonRecord('${rec.id}')">查看</button>
+                            <button class="btn btn-sm outline" onclick="editLessonRecord('${rec.id}')">编辑</button>
+                            <button class="btn btn-sm danger" onclick="deleteLessonRecord('${rec.id}')">删除</button>
+                        </div>
+                    </div>
+                    <div style="font-size:13px;color:var(--muted)">${rec.date} | ${rec.className} | ${rec.teacher}</div>
+                </div>
+            `).join('') || '<div class="empty-state"><div class="empty-icon">📝</div>暂无听课记录</div>'}
+        `;
+    }
+}
+function addLessonLink(category) {
+    openModal(`
+        <h3>新增链接</h3>
+        <div class="form-group"><label>名称</label><input id="linkName"></div>
+        <div class="form-group"><label>简介</label><input id="linkDesc"></div>
+        <div class="form-group"><label>网址</label><input id="linkUrl" placeholder="https://"></div>
+    `, () => {
+        const name = document.getElementById('linkName').value.trim();
+        if (!name) { alert('请输入名称'); return; }
+        state.lesson.links.push({id:uid(), category, name, desc:document.getElementById('linkDesc').value, url:document.getElementById('linkUrl').value});
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function editLessonLink(id) {
+    const link = state.lesson.links.find(l => l.id === id);
+    if (!link) return;
+    openModal(`
+        <h3>编辑链接</h3>
+        <div class="form-group"><label>名称</label><input id="linkName" value="${escapeHtml(link.name)}"></div>
+        <div class="form-group"><label>简介</label><input id="linkDesc" value="${escapeHtml(link.desc)}"></div>
+        <div class="form-group"><label>网址</label><input id="linkUrl" value="${escapeHtml(link.url)}"></div>
+    `, () => {
+        link.name = document.getElementById('linkName').value.trim();
+        link.desc = document.getElementById('linkDesc').value;
+        link.url = document.getElementById('linkUrl').value;
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteLessonLink(id) {
+    if (confirm('确认删除此链接？')) {
+        state.lesson.links = state.lesson.links.filter(l => l.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+function openLessonUrl(id) {
+    const link = state.lesson.links.find(l => l.id === id);
+    if (link && link.url) {
+        let url = link.url;
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        window.open(url, '_blank');
+    }
+}
+function addLessonTemplate() {
+    openModal(`
+        <h3>新建模板</h3>
+        <div class="form-group"><label>模板名称</label><input id="tplName"></div>
+        <div class="form-group"><label>说明</label><input id="tplDesc"></div>
+        <div class="form-group"><label>字段（每行一个，格式：标签|类型）</label><textarea id="tplFields" rows="4" placeholder="教学目标|text&#10;教学过程|textarea"></textarea></div>
+    `, () => {
+        const name = document.getElementById('tplName').value.trim();
+        if (!name) { alert('请输入模板名称'); return; }
+        const fields = document.getElementById('tplFields').value.split('\n').filter(l => l.trim()).map(line => {
+            const [label, type='text'] = line.split('|');
+            return {id:uid(), label:label.trim(), type:type.trim() || 'text'};
+        });
+        state.lesson.templates.push({id:uid(), name, desc:document.getElementById('tplDesc').value, isSystem:false, fields});
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function editLessonTemplate(id) {
+    const tpl = state.lesson.templates.find(t => t.id === id);
+    if (!tpl) return;
+    openModal(`
+        <h3>编辑模板</h3>
+        <div class="form-group"><label>模板名称</label><input id="tplName" value="${escapeHtml(tpl.name)}"></div>
+        <div class="form-group"><label>说明</label><input id="tplDesc" value="${escapeHtml(tpl.desc)}"></div>
+        <div class="form-group"><label>字段（每行一个，格式：标签|类型）</label><textarea id="tplFields" rows="4">${tpl.fields.map(f=>`${f.label}|${f.type}`).join('\n')}</textarea></div>
+    `, () => {
+        tpl.name = document.getElementById('tplName').value.trim();
+        tpl.desc = document.getElementById('tplDesc').value;
+        const oldFields = tpl.fields.slice();
+        const newFieldsRaw = document.getElementById('tplFields').value.split('\n').filter(l => l.trim());
+        const newFields = newFieldsRaw.map(line => {
+            const [label, type='text'] = line.split('|');
+            const trimmedLabel = label.trim();
+            const oldField = oldFields.find(f => f.label === trimmedLabel);
+            return {id:oldField?oldField.id:uid(), label:trimmedLabel, type:type.trim()||'text'};
+        });
+        tpl.fields = newFields;
+        const validIds = new Set(newFields.map(f=>f.id));
+        state.lesson.records.forEach(rec => {
+            if (rec.templateId === id) {
+                Object.keys(rec.fieldValues).forEach(fid => { if(!validIds.has(fid)) delete rec.fieldValues[fid]; });
+                newFields.forEach(f => { if(!(f.id in rec.fieldValues)) rec.fieldValues[f.id] = ''; });
+            }
+        });
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteLessonTemplate(id) {
+    if (confirm('确认删除此模板？')) {
+        state.lesson.templates = state.lesson.templates.filter(t => t.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+function useTemplate(tplId) {
+    const tpl = state.lesson.templates.find(t => t.id === tplId);
+    if (!tpl) return;
+    openModal(`
+        <h3>使用模板：${escapeHtml(tpl.name)}</h3>
+        <div class="form-group"><label>听课主题</label><input id="recTopic"></div>
+        <div class="form-row">
+            <div class="form-group"><label>日期</label><input type="date" id="recDate"></div>
+            <div class="form-group"><label>班级</label><input id="recClass"></div>
+        </div>
+        <div class="form-group"><label>授课教师</label><input id="recTeacher"></div>
+        <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+        ${tpl.fields.map(f => `
+            <div class="form-group"><label>${escapeHtml(f.label)}</label>
+            ${f.type === 'textarea' ? `<textarea id="field_${f.id}" rows="3"></textarea>` : `<input id="field_${f.id}">`}
+            </div>
+        `).join('')}
+    `, () => {
+        const topic = document.getElementById('recTopic').value.trim();
+        if (!topic) { alert('请输入听课主题'); return; }
+        const fieldValues = {};
+        tpl.fields.forEach(f => { fieldValues[f.id] = document.getElementById(`field_${f.id}`).value; });
+        state.lesson.records.push({
+            id:uid(), templateId:tplId, topic,
+            date:document.getElementById('recDate').value,
+            className:document.getElementById('recClass').value,
+            teacher:document.getElementById('recTeacher').value,
+            fieldValues, createdAt:new Date().toISOString()
+        });
+        saveState(); closeModal(); lessonTab='听课记录'; renderCurrentModule();
+    });
+}
+function viewLessonRecord(id) {
+    const rec = state.lesson.records.find(r => r.id === id);
+    if (!rec) return;
+    const tpl = state.lesson.templates.find(t => t.id === rec.templateId);
+    openModal(`
+        <h3>听课记录详情</h3>
+        <p><strong>主题：</strong>${escapeHtml(rec.topic)}</p>
+        <p><strong>日期：</strong>${rec.date} | <strong>班级：</strong>${escapeHtml(rec.className)} | <strong>教师：</strong>${escapeHtml(rec.teacher)}</p>
+        <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+        ${tpl ? tpl.fields.map(f => `<p><strong>${escapeHtml(f.label)}：</strong>${escapeHtml(rec.fieldValues[f.id] || '')}</p>`).join('') : ''}
+    `, ()=>{closeModal();});
+}
+function editLessonRecord(id) {
+    const rec = state.lesson.records.find(r => r.id === id);
+    if (!rec) return;
+    const tpl = state.lesson.templates.find(t => t.id === rec.templateId);
+    if (!tpl) { alert('模板已删除，无法编辑'); return; }
+    openModal(`
+        <h3>编辑听课记录</h3>
+        <div class="form-group"><label>听课主题</label><input id="recTopic" value="${escapeHtml(rec.topic)}"></div>
+        <div class="form-row">
+            <div class="form-group"><label>日期</label><input type="date" id="recDate" value="${rec.date}"></div>
+            <div class="form-group"><label>班级</label><input id="recClass" value="${escapeHtml(rec.className)}"></div>
+        </div>
+        <div class="form-group"><label>授课教师</label><input id="recTeacher" value="${escapeHtml(rec.teacher)}"></div>
+        <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+        ${tpl.fields.map(f => `
+            <div class="form-group"><label>${escapeHtml(f.label)}</label>
+            ${f.type === 'textarea' ? `<textarea id="field_${f.id}" rows="3">${escapeHtml(rec.fieldValues[f.id] || '')}</textarea>` : `<input id="field_${f.id}" value="${escapeHtml(rec.fieldValues[f.id] || '')}">`}
+            </div>
+        `).join('')}
+    `, () => {
+        rec.topic = document.getElementById('recTopic').value.trim();
+        rec.date = document.getElementById('recDate').value;
+        rec.className = document.getElementById('recClass').value;
+        rec.teacher = document.getElementById('recTeacher').value;
+        tpl.fields.forEach(f => { rec.fieldValues[f.id] = document.getElementById(`field_${f.id}`).value; });
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteLessonRecord(id) {
+    if (confirm('确认删除此记录？')) {
+        state.lesson.records = state.lesson.records.filter(r => r.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+
+// ==================== 学生名册模块 ====================
+function renderStudentsModule(container) {
+    const classId = studentClassId || state.classes[0]?.id;
+    const cls = state.classes.find(c => c.id === classId);
+    if (!cls && state.classes.length > 0) studentClassId = state.classes[0].id;
+    const effectiveClassId = studentClassId || state.classes[0]?.id;
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+            <h3 style="font-size:18px">学生名册</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <select id="classSelect" onchange="switchClass(this.value)">
+                    ${state.classes.map(c => `<option value="${c.id}" ${c.id===effectiveClassId?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+                </select>
+                <button class="btn btn-sm" onclick="addClass()">新建班级</button>
+                <button class="btn btn-sm outline" onclick="renameClass('${effectiveClassId}')">重命名</button>
+                <button class="btn btn-sm outline" onclick="pasteStudents('${effectiveClassId}')">粘贴数据</button>
+                <button class="btn btn-sm" onclick="addStudent('${effectiveClassId}')">新增学生</button>
+            </div>
+        </div>
+        <div style="margin-bottom:12px">
+            <input type="text" id="studentSearch" placeholder="搜索学生" oninput="renderStudentTable('${effectiveClassId}')" style="width:200px">
+        </div>
+        <div id="studentTableContainer" style="overflow-x:auto">${renderStudentTableContent(effectiveClassId)}</div>
+    `;
+}
+let studentClassId = null;
+function switchClass(id) { studentClassId = id; renderCurrentModule(); }
+function renderStudentTableContent(classId) {
+    const cls = state.classes.find(c => c.id === classId);
+    if (!cls) return '<div class="empty-state"><div class="empty-icon">👩‍🎓</div>请先创建班级</div>';
+    const search = document.getElementById('studentSearch')?.value || '';
+    const students = cls.students.filter(s => s.name.includes(search) || s.studentNo.includes(search) || s.parentName.includes(search) || s.phone.includes(search));
+    return `
+        <table class="score-table" style="min-width:800px">
+            <thead><tr><th>姓名</th><th>学号</th><th>性别</th><th>家长姓名</th><th>联系电话</th><th>备注</th><th>操作</th></tr></thead>
+            <tbody>
+                ${students.map(s => `
+                    <tr>
+                        <td contenteditable="true" onblur="updateStudent('${s.id}','name',this.textContent)">${escapeHtml(s.name)}</td>
+                        <td contenteditable="true" onblur="updateStudent('${s.id}','studentNo',this.textContent)">${escapeHtml(s.studentNo)}</td>
+                        <td contenteditable="true" onblur="updateStudent('${s.id}','gender',this.textContent)">${escapeHtml(s.gender)}</td>
+                        <td contenteditable="true" onblur="updateStudent('${s.id}','parentName',this.textContent)">${escapeHtml(s.parentName)}</td>
+                        <td contenteditable="true" onblur="updateStudent('${s.id}','phone',this.textContent)">${escapeHtml(s.phone)}</td>
+                        <td contenteditable="true" onblur="updateStudent('${s.id}','note',this.textContent)">${escapeHtml(s.note)}</td>
+                        <td><button class="btn btn-sm danger" onclick="deleteStudent('${s.id}')">删除</button></td>
+                    </tr>
+                `).join('') || '<tr><td colspan="7"><div class="empty-state">暂无学生，请新增或粘贴数据</div></td></tr>'}
+            </tbody>
+        </table>
+    `;
+}
+function renderStudentTable(classId) {
+    const container = document.getElementById('studentTableContainer');
+    if (container) container.innerHTML = renderStudentTableContent(classId);
+}
+function addClass() {
+    const name = prompt('请输入班级名称：');
+    if (name && name.trim()) {
+        state.classes.push({id:uid(), name:name.trim(), students:[]});
+        studentClassId = state.classes[state.classes.length-1].id;
+        saveState(); renderCurrentModule();
+    }
+}
+function renameClass(classId) {
+    const cls = state.classes.find(c => c.id === classId);
+    if (!cls) return;
+    const name = prompt('请输入新班级名称：', cls.name);
+    if (name && name.trim()) { cls.name = name.trim(); saveState(); renderCurrentModule(); }
+}
+function addStudent(classId) {
+    const cls = state.classes.find(c => c.id === classId);
+    if (!cls) return;
+    openModal(`
+        <h3>新增学生</h3>
+        <div class="form-row">
+            <div class="form-group"><label>姓名</label><input id="stuName"></div>
+            <div class="form-group"><label>学号</label><input id="stuNo"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>性别</label><input id="stuGender"></div>
+            <div class="form-group"><label>家长姓名</label><input id="stuParent"></div>
+        </div>
+        <div class="form-group"><label>联系电话</label><input id="stuPhone"></div>
+        <div class="form-group"><label>备注</label><input id="stuNote"></div>
+    `, () => {
+        const name = document.getElementById('stuName').value.trim();
+        if (!name) { alert('请输入姓名'); return; }
+        cls.students.push({id:uid(), name, studentNo:document.getElementById('stuNo').value, gender:document.getElementById('stuGender').value, parentName:document.getElementById('stuParent').value, phone:document.getElementById('stuPhone').value, note:document.getElementById('stuNote').value});
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function updateStudent(id, field, value) {
+    for (const cls of state.classes) {
+        const stu = cls.students.find(s => s.id === id);
+        if (stu) { stu[field] = value.trim(); saveState(); break; }
+    }
+}
+function deleteStudent(id) {
+    if (confirm('确认删除此学生？')) {
+        for (const cls of state.classes) cls.students = cls.students.filter(s => s.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+function pasteStudents(classId) {
+    const cls = state.classes.find(c => c.id === classId);
+    if (!cls) return;
+    const text = prompt('请粘贴Excel/Word复制的多行多列数据（支持制表符、逗号分隔）：');
+    if (!text) return;
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    let added = 0;
+    lines.forEach(line => {
+        const cols = line.split(/\t|,|;/).map(c => c.trim());
+        if (cols.length >= 2) {
+            cls.students.push({id:uid(), name:cols[0]||'', studentNo:cols[1]||'', gender:cols[2]||'', parentName:cols[3]||'', phone:cols[4]||'', note:cols[5]||''});
+            added++;
+        }
+    });
+    saveState(); renderCurrentModule(); alert(`成功导入 ${added} 名学生`);
+}
+
+// ==================== 成绩分析模块 ====================
+function renderScoresModule(container) {
+    const tabs = ['单次分析','多次对比','学生个人档案'];
+    const active = scoreTab || '单次分析';
+    container.innerHTML = `
+        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+            ${tabs.map(t => `<button class="btn btn-sm ${active===t?'':'outline'}" onclick="setScoreTab('${t}')">${t}</button>`).join('')}
+        </div>
+        <div id="scoreContent"></div>
+    `;
+    renderScoreContent(active);
+}
+let scoreTab = '单次分析';
+function setScoreTab(tab) { scoreTab = tab; renderCurrentModule(); }
+function renderScoreContent(tab) {
+    const content = document.getElementById('scoreContent');
+    if (!content) return;
+    if (tab === '单次分析') {
+        content.innerHTML = `
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                <select id="scoreClassSelect">
+                    ${state.classes.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                </select>
+                <select id="scoreExamSelect">
+                    <option value="">--选择考试--</option>
+                    ${state.exams.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('')}
+                </select>
+                <button class="btn btn-sm" onclick="addExam()">新建考试</button>
+                <button class="btn btn-sm outline" onclick="pasteScores()">粘贴成绩</button>
+                <button class="btn btn-sm" onclick="analyzeSingle()">分析</button>
+            </div>
+            <div id="singleScoreResult"></div>
+        `;
+    } else if (tab === '多次对比') {
+        content.innerHTML = `
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                <select id="compareClassSelect">
+                    ${state.classes.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                </select>
+                <button class="btn btn-sm" onclick="compareExams()">对比</button>
+                <span style="font-size:12px;color:var(--muted)">最多选择5次考试</span>
+            </div>
+            <div id="compareResult"></div>
+        `;
+    } else {
+        content.innerHTML = `
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                <select id="profileClassSelect">
+                    ${state.classes.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                </select>
+                <select id="profileStudentSelect"></select>
+                <button class="btn btn-sm" onclick="showStudentProfile()">查看档案</button>
+            </div>
+            <div id="profileResult"></div>
+        `;
+        const classId = document.getElementById('profileClassSelect')?.value;
+        updateProfileStudentSelect(classId);
+        document.getElementById('profileClassSelect')?.addEventListener('change', e => updateProfileStudentSelect(e.target.value));
+    }
+}
+function updateProfileStudentSelect(classId) {
+    const sel = document.getElementById('profileStudentSelect');
+    if (!sel) return;
+    const cls = state.classes.find(c => c.id === classId);
+    sel.innerHTML = cls ? cls.students.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('') : '';
+}
+function addExam() {
+    const classId = document.getElementById('scoreClassSelect')?.value || state.classes[0]?.id;
+    openModal(`
+        <h3>新建考试</h3>
+        <div class="form-group"><label>考试名称</label><input id="examName" placeholder="如：期中考试"></div>
+        <div class="form-group"><label>班级</label><select id="examClass">${state.classes.map(c=>`<option value="${c.id}" ${c.id===classId?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}</select></div>
+        <div class="form-group"><label>粘贴成绩（姓名，学号，语文，数学，英语）</label><textarea id="examData" rows="5" placeholder="张三,001,95,88,92&#10;李四,002,85,90,78"></textarea></div>
+    `, () => {
+        const name = document.getElementById('examName').value.trim();
+        if (!name) { alert('请输入考试名称'); return; }
+        const classId = document.getElementById('examClass').value;
+        const dataText = document.getElementById('examData').value.trim();
+        const records = [];
+        dataText.split('\n').filter(l=>l.trim()).forEach(line => {
+            const cols = line.split(/\t|,|;/).map(c=>c.trim());
+            if (cols.length >= 2) {
+                const scores = {};
+                if (cols[2]) scores['语文'] = parseFloat(cols[2]);
+                if (cols[3]) scores['数学'] = parseFloat(cols[3]);
+                if (cols[4]) scores['英语'] = parseFloat(cols[4]);
+                records.push({name:cols[0], studentNo:cols[1], scores});
+            }
+        });
+        state.exams.push({id:uid(), name, classId, records});
+        saveState(); closeModal(); renderCurrentModule();
+        document.getElementById('scoreExamSelect').value = state.exams[state.exams.length-1].id;
+    });
+}
+function pasteScores() {
+    const examId = document.getElementById('scoreExamSelect').value;
+    if (!examId) { alert('请先选择考试'); return; }
+    const exam = state.exams.find(e => e.id === examId);
+    if (!exam) return;
+    const text = prompt('请粘贴成绩（姓名，学号，语文，数学，英语）：');
+    if (!text) return;
+    text.split('\n').filter(l=>l.trim()).forEach(line => {
+        const cols = line.split(/\t|,|;/).map(c=>c.trim());
+        if (cols.length >= 2) {
+            const scores = {};
+            if (cols[2]) scores['语文'] = parseFloat(cols[2]);
+            if (cols[3]) scores['数学'] = parseFloat(cols[3]);
+            if (cols[4]) scores['英语'] = parseFloat(cols[4]);
+            exam.records.push({name:cols[0], studentNo:cols[1], scores});
+        }
+    });
+    saveState(); renderCurrentModule(); alert('成绩已导入');
+}
+function analyzeSingle() {
+    const examId = document.getElementById('scoreExamSelect').value;
+    if (!examId) { alert('请选择考试'); return; }
+    const exam = state.exams.find(e => e.id === examId);
+    if (!exam || !exam.records || exam.records.length === 0) { alert('该考试暂无成绩'); return; }
+    const firstRecord = exam.records.find(r => r.scores && Object.keys(r.scores).length > 0);
+    if (!firstRecord) { alert('成绩数据为空'); return; }
+    const subjects = Object.keys(firstRecord.scores);
+    let html = `<h4 style="margin-bottom:10px">${escapeHtml(exam.name)} 统计</h4>`;
+    html += `<p style="margin-bottom:10px">参考人数：${exam.records.length}</p>`;
+    subjects.forEach(sub => {
+        const scores = exam.records.map(r => r.scores[sub]).filter(v => !isNaN(v));
+        if (scores.length === 0) return;
+        const avg = (scores.reduce((a,b)=>a+b,0) / scores.length).toFixed(1);
+        const max = Math.max(...scores);
+        const min = Math.min(...scores);
+        const passCount = scores.filter(s => s >= 60).length;
+        const passRate = ((passCount / scores.length) * 100).toFixed(1);
+        html += `<p><strong>${sub}</strong>：平均${avg} 最高${max} 最低${min} 及格率${passRate}%</p>`;
+        const segs = {'<60':0,'60-69':0,'70-79':0,'80-89':0,'90-100':0};
+        scores.forEach(s => {
+            if (s < 60) segs['<60']++;
+            else if (s < 70) segs['60-69']++;
+            else if (s < 80) segs['70-79']++;
+            else if (s < 90) segs['80-89']++;
+            else segs['90-100']++;
+        });
+        html += `<p style="font-size:12px;color:var(--muted)">分数段：${Object.entries(segs).map(([k,v])=>`${k}:${v}人`).join(' ')}</p>`;
+    });
+    const students = exam.records.map(r => {
+        const total = subjects.reduce((sum, sub) => sum + (r.scores[sub] || 0), 0);
+        return { ...r, total };
+    }).sort((a,b) => b.total - a.total);
+    html += `<table class="score-table"><tr><th>排名</th><th>姓名</th><th>学号</th>${subjects.map(s=>`<th>${s}</th>`).join('')}<th>总分</th></tr>`;
+    students.forEach((s, i) => {
+        html += `<tr><td>${i+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.studentNo)}</td>${subjects.map(sub=>`<td>${s.scores[sub] || '-'}</td>`).join('')}<td>${s.total}</td></tr>`;
+    });
+    html += '</table>';
+    document.getElementById('singleScoreResult').innerHTML = html;
+}
+function compareExams() {
+    const classId = document.getElementById('compareClassSelect').value;
+    let exams = state.exams.filter(e => e.classId === classId && e.records && e.records.length > 0).slice(0, 5);
+    if (exams.length < 2) { alert('至少需要两次有成绩的考试'); return; }
+    exams = exams.filter(e => e.records.some(r => r.scores && Object.keys(r.scores).length > 0));
+    if (exams.length < 2) { alert('至少需要两次有成绩的考试'); return; }
+    const firstRecord = exams[0].records.find(r => r.scores && Object.keys(r.scores).length > 0);
+    const subjects = Object.keys(firstRecord.scores);
+    let html = `<h4 style="margin-bottom:10px">班级平均分对比</h4><table class="score-table"><tr><th>考试</th>${subjects.map(s=>`<th>${s}</th>`).join('')}</tr>`;
+    exams.forEach(exam => {
+        html += `<tr><td>${escapeHtml(exam.name)}</td>`;
+        subjects.forEach(sub => {
+            const scores = exam.records.map(r => r.scores[sub]).filter(v => !isNaN(v));
+            const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '-';
+            html += `<td>${avg}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</table>';
+    const allStudents = [...new Set(exams.flatMap(e => e.records.map(r => r.name)))].slice(0, 5);
+    if (allStudents.length > 0) {
+        html += `<h4 style="margin:16px 0 10px">学生排名变化</h4>`;
+        html += `<table class="score-table"><tr><th>学生</th>${exams.map(e=>`<th>${escapeHtml(e.name)}排名</th>`).join('')}</tr>`;
+        allStudents.forEach(name => {
+            html += `<tr><td>${escapeHtml(name)}</td>`;
+            exams.forEach(exam => {
+                const sorted = [...exam.records].sort((a,b) => {
+                    const totalA = subjects.reduce((s,sub)=>s+(a.scores[sub]||0),0);
+                    const totalB = subjects.reduce((s,sub)=>s+(b.scores[sub]||0),0);
+                    return totalB - totalA;
+                });
+                const idx = sorted.findIndex(r => r.name === name);
+                html += `<td>${idx >= 0 ? idx+1 : '-'}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</table>';
+    }
+    document.getElementById('compareResult').innerHTML = html;
+}
+function showStudentProfile() {
+    const classId = document.getElementById('profileClassSelect').value;
+    const studentId = document.getElementById('profileStudentSelect').value;
+    if (!studentId) { alert('请选择学生'); return; }
+    const cls = state.classes.find(c => c.id === classId);
+    const student = cls?.students.find(s => s.id === studentId);
+    if (!student) return;
+    let exams = state.exams.filter(e => e.classId === classId && e.records && e.records.length > 0);
+    const resultDiv = document.getElementById('profileResult');
+    let html = `<h4 style="margin-bottom:10px">${escapeHtml(student.name)} 个人档案</h4>`;
+    if (exams.length > 0) {
+        const subjects = Object.keys(exams[0].records.find(r => r.scores && Object.keys(r.scores).length > 0)?.scores || {});
+        if (subjects.length === 0) { resultDiv.innerHTML = '<div class="empty-state">暂无成绩数据</div>'; return; }
+        html += '<table class="score-table"><tr><th>考试</th><th>总分</th>' + subjects.map(s=>`<th>${s}</th>`).join('') + '</tr>';
+        exams.forEach(exam => {
+            const rec = exam.records.find(r => r.name === student.name || r.studentNo === student.studentNo);
+            if (rec) {
+                const total = subjects.reduce((sum, sub) => sum + (rec.scores[sub] || 0), 0);
+                html += `<tr><td>${escapeHtml(exam.name)}</td><td>${total}</td>${subjects.map(s=>`<td>${rec.scores[s]||'-'}</td>`).join('')}</tr>`;
+            } else {
+                html += `<tr><td>${escapeHtml(exam.name)}</td><td>-</td>${subjects.map(()=>'<td>-</td>').join('')}</tr>`;
+            }
+        });
+        html += '</table>';
+        const totals = exams.map(exam => {
+            const rec = exam.records.find(r => r.name === student.name || r.studentNo === student.studentNo);
+            if (rec) return subjects.reduce((sum, sub) => sum + (rec.scores[sub] || 0), 0);
+            return 0;
+        });
+        const maxTotal = Math.max(...totals, 100);
+        const minTotal = Math.min(...totals, 0);
+        const range = maxTotal - minTotal || 1;
+        const svgWidth = 400, svgHeight = 200, padding = 30;
+        const points = totals.map((t, i) => {
+            const x = padding + (i * (svgWidth - 2*padding) / (totals.length - 1 || 1));
+            const y = svgHeight - padding - ((t - minTotal) / range) * (svgHeight - 2*padding);
+            return `${x},${y}`;
+        }).join(' ');
+        html += `<h4 style="margin:16px 0 10px">总分变化趋势</h4>
+        <svg width="400" height="200" viewBox="0 0 400 200" style="background:#fff;border:1px solid var(--border);border-radius:var(--radius-sm)">
+            <polyline points="${points}" fill="none" stroke="#7D8EB0" stroke-width="2"/>
+            ${totals.map((t,i) => {
+                const x = padding + (i * (svgWidth - 2*padding) / (totals.length - 1 || 1));
+                const y = svgHeight - padding - ((t - minTotal) / range) * (svgHeight - 2*padding);
+                return `<circle cx="${x}" cy="${y}" r="3" fill="#E8907A"/><text x="${x}" y="${y-10}" text-anchor="middle" font-size="10" fill="#3E3A4E">${t}</text>`;
+            }).join('')}
+        </svg>`;
+    } else {
+        html += '<div class="empty-state"><div class="empty-icon">📊</div>暂无考试数据</div>';
+    }
+    resultDiv.innerHTML = html;
+}
+
+// ==================== 家校沟通模块 ====================
+function renderNoticeModule(container) {
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+            <h3 style="font-size:18px">家校沟通</h3>
+            <button class="btn" onclick="addNoticeTemplate()">＋ 新增模板</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+            ${state.notices.map(n => `
+                <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:#fff;transition:var(--transition)" onclick="useNoticeTemplate('${n.id}')">
+                    <strong>${escapeHtml(n.name)}</strong>
+                    <div style="font-size:12px;color:var(--muted)">${n.category}</div>
+                </div>
+            `).join('')}
+        </div>
+        <div id="noticeResult"></div>
+    `;
+}
+function addNoticeTemplate() {
+    openModal(`
+        <h3>新增通知模板</h3>
+        <div class="form-group"><label>模板名称</label><input id="noticeName"></div>
+        <div class="form-group"><label>分类</label><input id="noticeCategory" value="通用"></div>
+        <div class="form-group"><label>模板内容</label><textarea id="noticeContent" rows="6" placeholder="使用{时间}、{地点}、{事项}、{注意内容}等占位符"></textarea></div>
+    `, () => {
+        const name = document.getElementById('noticeName').value.trim();
+        if (!name) { alert('请输入模板名称'); return; }
+        state.notices.push({id:uid(), name, category:document.getElementById('noticeCategory').value, content:document.getElementById('noticeContent').value});
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function editNoticeTemplate(id) {
+    const notice = state.notices.find(n => n.id === id);
+    if (!notice) return;
+    openModal(`
+        <h3>编辑模板</h3>
+        <div class="form-group"><label>模板名称</label><input id="noticeName" value="${escapeHtml(notice.name)}"></div>
+        <div class="form-group"><label>分类</label><input id="noticeCategory" value="${escapeHtml(notice.category)}"></div>
+        <div class="form-group"><label>模板内容</label><textarea id="noticeContent" rows="6">${escapeHtml(notice.content)}</textarea></div>
+    `, () => {
+        notice.name = document.getElementById('noticeName').value.trim();
+        notice.category = document.getElementById('noticeCategory').value;
+        notice.content = document.getElementById('noticeContent').value;
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteNoticeTemplate(id) {
+    if (confirm('确认删除此模板？')) {
+        state.notices = state.notices.filter(n => n.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+function useNoticeTemplate(id) {
+    const notice = state.notices.find(n => n.id === id);
+    if (!notice) return;
+    openModal(`
+        <h3>填写通知变量</h3>
+        <div class="form-row">
+            <div class="form-group"><label>时间</label><input id="varTime" placeholder="如：本周五"></div>
+            <div class="form-group"><label>地点</label><input id="varPlace" placeholder="如：学校礼堂"></div>
+        </div>
+        <div class="form-group"><label>事项</label><input id="varThing" placeholder="事项内容"></div>
+        <div class="form-group"><label>注意内容</label><textarea id="varNote" rows="3"></textarea></div>
+    `, () => {
+        const time = document.getElementById('varTime').value || '{时间}';
+        const place = document.getElementById('varPlace').value || '{地点}';
+        const thing = document.getElementById('varThing').value || '{事项}';
+        const note = document.getElementById('varNote').value || '{注意内容}';
+        let generated = notice.content.replace(/\{时间\}/g, time).replace(/\{地点\}/g, place).replace(/\{事项\}/g, thing).replace(/\{注意内容\}/g, note);
+        generated = generated.replace(/\n/g, '<br>');
+        closeModal();
+        const resultDiv = document.getElementById('noticeResult');
+        if (resultDiv) {
+            resultDiv.innerHTML = `
+                <div class="notice-output">${generated}</div>
+                <button class="btn btn-sm" onclick="copyNotice()">复制全文</button>
+                <textarea id="noticeCopyText" style="width:100%;margin-top:10px;min-height:80px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px" readonly>${generated.replace(/<br>/g,'\n')}</textarea>
+            `;
+        }
+    });
+}
+function copyNotice() {
+    const textarea = document.getElementById('noticeCopyText');
+    const text = textarea ? textarea.value : '';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => alert('已复制')).catch(() => fallbackCopy(textarea));
+    } else {
+        fallbackCopy(textarea);
+    }
+}
+function fallbackCopy(textarea) {
+    if (!textarea) return;
+    textarea.select();
+    document.execCommand('copy');
+    alert('已复制（如未成功请手动复制）');
+}
+
+// ==================== AI与应用模块 ====================
+function renderAiModule(container) {
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+            <h3 style="font-size:18px">AI与应用</h3>
+            <button class="btn btn-sm" onclick="addAiApp()">＋ 添加应用</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+            ${state.aiCategories.map(cat => `<button class="btn btn-sm ${aiCategory===cat?'':'outline'}" onclick="setAiCategory('${cat}')">${cat}</button>`).join('')}
+            <button class="btn btn-sm outline" onclick="addAiCategory()">+分类</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+            ${state.aiApps.filter(app => app.category === (aiCategory || state.aiCategories[0])).map(app => `
+                <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;text-align:center;background:#fff;transition:var(--transition)" onclick="openAiApp('${app.id}')">
+                    <div style="width:40px;height:40px;border-radius:10px;background:${app.color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin:0 auto 8px">${escapeHtml(app.logo)}</div>
+                    <div><strong>${escapeHtml(app.name)}</strong></div>
+                    <div style="font-size:12px;color:var(--muted)">${escapeHtml(app.desc)}</div>
+                    <div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
+                        <button class="btn btn-sm outline" onclick="event.stopPropagation();editAiApp('${app.id}')">编辑</button>
+                        <button class="btn btn-sm danger" onclick="event.stopPropagation();deleteAiApp('${app.id}')">删除</button>
+                    </div>
+                </div>
+            `).join('') || '<div class="empty-state"><div class="empty-icon">🤖</div>暂无应用</div>'}
+        </div>
+    `;
+}
+let aiCategory = null;
+function setAiCategory(cat) { aiCategory = cat; renderCurrentModule(); }
+function addAiCategory() {
+    const cat = prompt('请输入新分类名称：');
+    if (cat && cat.trim()) { state.aiCategories.push(cat.trim()); aiCategory = cat.trim(); saveState(); renderCurrentModule(); }
+}
+function addAiApp() {
+    openModal(`
+        <h3>添加应用</h3>
+        <div class="form-group"><label>名称</label><input id="appName"></div>
+        <div class="form-group"><label>简介</label><input id="appDesc"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Logo简写</label><input id="appLogo" maxlength="2"></div>
+            <div class="form-group"><label>颜色</label><input type="color" id="appColor" value="#7D8EB0"></div>
+        </div>
+        <div class="form-group"><label>网址</label><input id="appUrl" placeholder="https://"></div>
+        <div class="form-group"><label>分类</label><select id="appCategory">${state.aiCategories.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>
+    `, () => {
+        const name = document.getElementById('appName').value.trim();
+        if (!name) { alert('请输入名称'); return; }
+        state.aiApps.push({id:uid(), name, desc:document.getElementById('appDesc').value, logo:document.getElementById('appLogo').value || name[0], color:document.getElementById('appColor').value, url:document.getElementById('appUrl').value, category:document.getElementById('appCategory').value});
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function editAiApp(id) {
+    const app = state.aiApps.find(a => a.id === id);
+    if (!app) return;
+    openModal(`
+        <h3>编辑应用</h3>
+        <div class="form-group"><label>名称</label><input id="appName" value="${escapeHtml(app.name)}"></div>
+        <div class="form-group"><label>简介</label><input id="appDesc" value="${escapeHtml(app.desc)}"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Logo简写</label><input id="appLogo" value="${escapeHtml(app.logo)}" maxlength="2"></div>
+            <div class="form-group"><label>颜色</label><input type="color" id="appColor" value="${app.color}"></div>
+        </div>
+        <div class="form-group"><label>网址</label><input id="appUrl" value="${escapeHtml(app.url)}"></div>
+        <div class="form-group"><label>分类</label><select id="appCategory">${state.aiCategories.map(c=>`<option value="${c}" ${c===app.category?'selected':''}>${c}</option>`).join('')}</select></div>
+    `, () => {
+        app.name = document.getElementById('appName').value.trim();
+        app.desc = document.getElementById('appDesc').value;
+        app.logo = document.getElementById('appLogo').value || app.name[0];
+        app.color = document.getElementById('appColor').value;
+        app.url = document.getElementById('appUrl').value;
+        app.category = document.getElementById('appCategory').value;
+        saveState(); closeModal(); renderCurrentModule();
+    });
+}
+function deleteAiApp(id) {
+    if (confirm('确认删除此应用？')) {
+        state.aiApps = state.aiApps.filter(a => a.id !== id);
+        saveState(); renderCurrentModule();
+    }
+}
+function openAiApp(id) {
+    const app = state.aiApps.find(a => a.id === id);
+    if (app && app.url) {
+        let url = app.url;
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        window.open(url, '_blank');
+    }
+}
+
+// ==================== 工作区管理模块 ====================
+function renderSettingsModule(container) {
+    container.innerHTML = `
+        <h3 style="font-size:18px;margin-bottom:20px">工作区管理</h3>
+        <div class="form-group"><label>工作台名称（≤10汉字）</label><input id="setWorkbenchName" value="${escapeHtml(state.settings.workbenchName)}" maxlength="10"></div>
+        <div class="form-group"><label>教师称呼</label><input id="setTeacherName" value="${escapeHtml(state.settings.teacherName)}"></div>
+        <div class="form-group"><label>配色主题</label><select id="setTheme">
+            <option value="default" ${state.settings.theme==='default'?'selected':''}>默认（米白/浅紫/鼠尾草绿）</option>
+            <option value="warm" ${state.settings.theme==='warm'?'selected':''}>暖色</option>
+            <option value="cool" ${state.settings.theme==='cool'?'selected':''}>冷色</option>
+        </select></div>
+        <div class="form-group"><label>显示模块（取消勾选则隐藏）</label>
+            <div style="display:flex;flex-wrap:wrap;gap:10px">
+                ${Object.keys(moduleNames).map(m => `
+                    <label style="display:flex;align-items:center;gap:4px;font-size:13px">
+                        <input type="checkbox" ${state.settings.visibleModules.includes(m)?'checked':''} onchange="toggleModuleVisibility('${m}',this.checked)"> ${moduleNames[m]}
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+        <div class="form-group"><label>首页显示模块</label>
+            <div style="display:flex;flex-wrap:wrap;gap:10px">
+                ${['schedule','todo','calendar','tools'].map(m => `
+                    <label style="display:flex;align-items:center;gap:4px;font-size:13px">
+                        <input type="checkbox" ${state.settings.homeModules.includes(m)?'checked':''} onchange="toggleHomeModule('${m}',this.checked)"> ${moduleNames[m]}
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+        <div class="form-group"><label>助手名称</label><input id="setAssistantName" value="${escapeHtml(state.settings.assistantName)}"></div>
+        <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
+            <button class="btn" onclick="saveSettings()">保存设置</button>
+            <button class="btn outline" onclick="exportData()">导出备份</button>
+            <button class="btn outline" onclick="importData()">导入备份</button>
+            <button class="btn danger" onclick="resetDefault()">恢复默认设置</button>
+        </div>
+    `;
+}
+function toggleModuleVisibility(m, checked) {
+    if (checked) {
+        if (!state.settings.visibleModules.includes(m)) state.settings.visibleModules.push(m);
+        if (!state.settings.navOrder.includes(m)) state.settings.navOrder.push(m);
+    } else {
+        state.settings.visibleModules = state.settings.visibleModules.filter(v => v !== m);
+    }
+    saveState(); renderCurrentModule();
+}
+function toggleHomeModule(m, checked) {
+    if (checked) {
+        if (!state.settings.homeModules.includes(m)) state.settings.homeModules.push(m);
+    } else {
+        state.settings.homeModules = state.settings.homeModules.filter(v => v !== m);
+    }
+    saveState(); renderCurrentModule();
+}
+function saveSettings() {
+    state.settings.workbenchName = document.getElementById('setWorkbenchName').value.trim() || 'AI教师工作台';
+    state.settings.teacherName = document.getElementById('setTeacherName').value.trim() || '老师';
+    state.settings.theme = document.getElementById('setTheme').value;
+    state.settings.assistantName = document.getElementById('setAssistantName').value.trim() || '小助手';
+    saveState();
+    alert('设置已保存');
+    renderCurrentModule();
+}
+function exportData() {
+    const dataStr = JSON.stringify(state, null, 2);
+    const blob = new Blob([dataStr], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AI教师工作台备份_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data && data.settings) {
+                    state = {...state, ...data, settings: {...state.settings, ...data.settings}};
+                    saveState();
+                    renderCurrentModule();
+                    alert('备份导入成功');
+                } else {
+                    alert('无效的备份文件');
+                }
+            } catch(err) {
+                alert('导入失败：' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+function resetDefault() {
+    if (confirm('确认恢复默认设置？当前所有数据将被清除！')) {
+        initDefaultData();
+        saveState();
+        renderCurrentModule();
+        alert('已恢复默认设置');
+    }
+}
+
+// ==================== 本地助手 ====================
+function toggleAssistant() {
+    const panel = document.getElementById('assistantPanel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+        document.getElementById('assistantName').textContent = state.settings.assistantName;
+        document.getElementById('assistantInput').focus();
+    }
+}
+function assistantSearch() {
+    const query = document.getElementById('assistantInput').value.trim().toLowerCase();
+    const resultDiv = document.getElementById('assistantResult');
+    if (!query) { resultDiv.innerHTML = '<p style="color:var(--muted)">请输入搜索内容</p>'; return; }
+    let results = [];
+    state.todos.forEach(t => { if (t.text.toLowerCase().includes(query) || (t.note && t.note.toLowerCase().includes(query))) results.push(`待办：${t.text}${t.done?'（已完成）':''}`); });
+    state.classes.forEach(cls => { cls.students.forEach(s => { if (s.name.toLowerCase().includes(query) || s.studentNo.toLowerCase().includes(query) || s.parentName.toLowerCase().includes(query)) results.push(`学生：${cls.name} ${s.name} (${s.studentNo})`); }); });
+    state.schedule.forEach(item => { if (item.courseName.toLowerCase().includes(query) || item.className.toLowerCase().includes(query)) results.push(`课表：${getDayName(item.day)} 第${item.period}节 ${item.courseName} (${item.className})`); });
+    Object.entries(state.calendarNotes).forEach(([date, note]) => { if (note.toLowerCase().includes(query)) results.push(`备忘：${date} ${note}`); });
+    state.lesson.links.forEach(link => { if (link.name.toLowerCase().includes(query) || link.desc.toLowerCase().includes(query)) results.push(`备课链接：${link.name} (${link.desc})`); });
+    state.lesson.records.forEach(rec => { if (rec.topic.toLowerCase().includes(query) || rec.className.toLowerCase().includes(query) || rec.teacher.toLowerCase().includes(query)) results.push(`听课记录：${rec.topic} (${rec.className} ${rec.teacher})`); });
+    state.notices.forEach(n => { if (n.name.toLowerCase().includes(query) || n.content.toLowerCase().includes(query)) results.push(`通知模板：${n.name}`); });
+    state.tools.forEach(t => { if (t.name.toLowerCase().includes(query)) results.push(`常用工具：${t.name}`); });
+    if (results.length === 0) {
+        resultDiv.innerHTML = '<p style="color:var(--muted)">当前工作台中没有找到相关内容</p>';
+    } else {
+        resultDiv.innerHTML = results.slice(0, 20).map(r => `<div style="padding:6px 0;border-bottom:1px solid var(--border)">${escapeHtml(r)}</div>`).join('');
+    }
+}
+
+// ==================== 初始化 ====================
+loadState();
+renderNav();
+renderCurrentModule();
+</script>
+</body>
+</html>

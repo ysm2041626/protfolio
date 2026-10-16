@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学生课表管理 · 离线版</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background:#f5f7fa; color:#333; }
+.header { background:#4a6cf7; color:#fff; padding:15px 30px; display:flex; align-items:center; justify-content:space-between; }
+.header h1 { font-size:1.5rem; font-weight:500; }
+.tabs { display:flex; gap:5px; }
+.tab-btn { background:rgba(255,255,255,0.15); border:none; color:#fff; padding:8px 20px; border-radius:6px; cursor:pointer; font-size:0.95rem; }
+.tab-btn.active { background:#fff; color:#4a6cf7; font-weight:600; }
+.container { max-width:1100px; margin:30px auto; padding:0 20px; }
+.panel { background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,0.05); }
+.toolbar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+button { background:#4a6cf7; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer; font-size:0.9rem; }
+button.secondary { background:#e2e8f0; color:#333; }
+button.danger { background:#e53e3e; }
+button:disabled { opacity:0.5; cursor:default; }
+select, input { padding:8px 12px; border:1px solid #ddd; border-radius:6px; font-size:0.9rem; }
+.course-list, .student-list { width:100%; border-collapse: collapse; }
+.course-list th, .student-list th { text-align:left; padding:10px; background:#f1f5f9; font-weight:600; }
+.course-list td, .student-list td { padding:10px; border-bottom:1px solid #eee; }
+.teacher-tag { display:inline-block; padding:2px 10px; border-radius:12px; color:#fff; font-size:0.85rem; }
+.schedule-grid { overflow-x:auto; }
+.schedule-table { width:100%; border-collapse: collapse; min-width:700px; }
+.schedule-table th, .schedule-table td { border:1px solid #e2e8f0; padding:8px; text-align:center; vertical-align:top; }
+.schedule-table th { background:#f8fafc; font-weight:600; }
+.schedule-cell { min-height:60px; }
+.course-block { background:#eef2ff; border-left:4px solid; padding:6px 8px; margin:4px 0; border-radius:6px; font-size:0.85rem; text-align:left; }
+.course-block.special { background:#f1f5f9; border-left-color:#a0aec0; color:#4a5568; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📚 学生课表管理</h1>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="courses">课程管理</button>
+    <button class="tab-btn" data-tab="students">学生名册</button>
+    <button class="tab-btn" data-tab="schedule">课表视图</button>
+  </div>
+</div>
+
+<div class="container">
+  <div id="panel-courses" class="panel" style="display:block;">
+    <div class="toolbar">
+      <button onclick="openCourseForm()">＋ 添加课程</button>
+      <button id="undoBtn" disabled onclick="undo()">↩ 撤销</button>
+      <span style="font-size:0.85rem; color:#888;">Ctrl+Z 也可撤销</span>
+    </div>
+    <table class="course-list">
+      <thead><tr><th>课程名称</th><th>老师</th><th>时间</th><th>操作</th></tr></thead>
+      <tbody id="courseTableBody"></tbody>
+    </table>
+  </div>
+
+  <div id="panel-students" class="panel" style="display:none;">
+    <div class="toolbar">
+      <label>选择课程：</label>
+      <select id="studentCourseSelect" onchange="renderStudents()"></select>
+      <button onclick="openStudentForm()">＋ 添加学生</button>
+      <button onclick="openImportDialog()">📥 批量导入</button>
+      <button id="undoBtn2" disabled onclick="undo()">↩ 撤销</button>
+    </div>
+    <table class="student-list">
+      <thead><tr><th>姓名</th><th>操作</th></tr></thead>
+      <tbody id="studentTableBody"></tbody>
+    </table>
+  </div>
+
+  <div id="panel-schedule" class="panel" style="display:none;">
+    <div class="toolbar">
+      <button onclick="renderSchedule()">🔄 刷新课表</button>
+    </div>
+    <div class="schedule-grid" id="scheduleContainer"></div>
+  </div>
+</div>
+
+<!-- 弹窗：添加/编辑课程 -->
+<div id="courseModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center;">
+  <div style="background:#fff; padding:25px; border-radius:12px; width:400px;">
+    <h3 id="courseModalTitle">添加课程</h3>
+    <label>科目名称</label><br><input id="courseName" style="width:100%; margin:8px 0;"><br>
+    <label>老师姓名</label><br><input id="courseTeacher" style="width:100%; margin:8px 0;"><br>
+    <label>星期</label><br>
+    <select id="courseDay" style="width:100%; margin:8px 0;">
+      <option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option>
+    </select><br>
+    <label>开始时间</label><br><input type="time" id="courseStart" value="08:00" style="width:100%; margin:8px 0;"><br>
+    <label>结束时间</label><br><input type="time" id="courseEnd" value="08:45" style="width:100%; margin:8px 0;"><br>
+    <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="secondary" onclick="closeCourseModal()">取消</button>
+      <button id="saveCourseBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 弹窗：添加学生 -->
+<div id="studentModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center;">
+  <div style="background:#fff; padding:25px; border-radius:12px; width:350px;">
+    <h3>添加学生</h3>
+    <label>姓名</label><br><input id="studentName" style="width:100%; margin:8px 0;"><br>
+    <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="secondary" onclick="closeStudentModal()">取消</button>
+      <button onclick="saveStudent()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 弹窗：批量导入学生 -->
+<div id="importModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center;">
+  <div style="background:#fff; padding:25px; border-radius:12px; width:400px;">
+    <h3>批量导入学生</h3>
+    <p>每行一个学生姓名，将会导入到当前选择的课程中</p>
+    <textarea id="importNames" rows="8" style="width:100%; padding:10px;" placeholder="张三&#10;李四&#10;王五"></textarea>
+    <div style="margin-top:15px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="secondary" onclick="closeImportModal()">取消</button>
+      <button onclick="importStudents()">导入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- 数据 & 初始化 ----------
+const STORAGE_KEY = 'timetable_app_data';
+const PRESET_SLOTS = [
+  { start:'08:00', end:'08:45' },
+  { start:'08:45', end:'09:30' },
+  { start:'10:30', end:'11:15' },
+  { start:'13:00', end:'13:45' },
+  { start:'16:45', end:'17:30' }
+];
+
+let appData = {
+  courses: [],
+  students: []
+};
+
+// 默认示例数据（不包含方老师、珠老师）
+const DEFAULT_DATA = {
+  courses: [
+    { id:'c1', name:'高等数学', teacher:'黄老师', day:1, startTime:'16:45', endTime:'17:30' },
+    { id:'c2', name:'英语阅读', teacher:'李老师', day:2, startTime:'08:00', endTime:'08:45' },
+    { id:'c3', name:'编程入门', teacher:'王老师', day:3, startTime:'14:30', endTime:'16:00' } // 非标准时间
+  ],
+  students: [
+    { id:'s1', name:'小明', courseId:'c1' },
+    { id:'s2', name:'小红', courseId:'c1' },
+    { id:'s3', name:'小刚', courseId:'c2' },
+    { id:'s4', name:'小丽', courseId:'c3' }
+  ]
+};
+
+// 撤销系统
+let undoStack = [];
+const MAX_UNDO = 50;
+
+function pushUndo() {
+  undoStack.push(JSON.parse(JSON.stringify(appData)));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  updateUndoButtons();
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  appData = undoStack.pop();
+  saveData();
+  renderAll();
+  updateUndoButtons();
+}
+
+function updateUndoButtons() {
+  const btns = document.querySelectorAll('#undoBtn, #undoBtn2');
+  btns.forEach(b => b.disabled = undoStack.length === 0);
+}
+
+// 数据持久化
+function loadData() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      appData = JSON.parse(saved);
+    } catch(e) { resetToDefault(); }
+  } else {
+    resetToDefault();
+  }
+  // 确保没有方老师、珠老师的课程
+  appData.courses = appData.courses.filter(c => c.teacher !== '方老师' && c.teacher !== '珠老师');
+  // 清除指向不存在课程的学生
+  const validIds = new Set(appData.courses.map(c => c.id));
+  appData.students = appData.students.filter(s => validIds.has(s.courseId));
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+}
+
+function resetToDefault() {
+  appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  saveData();
+}
+
+// ---------- 工具函数 ----------
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2,5);
+}
+
+function getTeacherColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = ((hash % 360) + 360) % 360;
+  return `hsl(${hue}, 65%, 55%)`;
+}
+
+function timeToMinutes(timeStr) {
+  const [h,m] = timeStr.split(':').map(Number);
+  return h*60 + m;
+}
+
+function formatTimeRange(start, end) {
+  return `${start} - ${end}`;
+}
+
+// ---------- UI 渲染 ----------
+function renderAll() {
+  renderCourses();
+  renderStudents();
+  renderSchedule();
+}
+
+function renderCourses() {
+  const tbody = document.getElementById('courseTableBody');
+  tbody.innerHTML = appData.courses.map(c => {
+    const color = getTeacherColor(c.teacher);
+    return `<tr>
+      <td>${c.name}</td>
+      <td><span class="teacher-tag" style="background:${color}">${c.teacher}</span></td>
+      <td>${['','周一','周二','周三','周四','周五'][c.day]} ${c.startTime}-${c.endTime}</td>
+      <td>
+        <button onclick="editCourse('${c.id}')">编辑</button>
+        <button class="danger" onclick="deleteCourse('${c.id}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStudents() {
+  const select = document.getElementById('studentCourseSelect');
+  const currentVal = select.value;
+  select.innerHTML = '<option value="">-- 请选择课程 --</option>' + 
+    appData.courses.map(c => `<option value="${c.id}">${c.name}（${c.teacher}）</option>`).join('');
+  if (currentVal && appData.courses.some(c => c.id === currentVal)) {
+    select.value = currentVal;
+  }
+  
+  const courseId = select.value;
+  const tbody = document.getElementById('studentTableBody');
+  if (!courseId) {
+    tbody.innerHTML = '<tr><td colspan="2" style="color:#888;">请先选择一门课程</td></tr>';
+    return;
+  }
+  const students = appData.students.filter(s => s.courseId === courseId);
+  tbody.innerHTML = students.map(s => 
+    `<tr><td>${s.name}</td><td><button class="danger" onclick="deleteStudent('${s.id}')">删除</button></td></tr>`
+  ).join('');
+  if (students.length === 0) tbody.innerHTML = '<tr><td colspan="2" style="color:#888;">暂无学生</td></tr>';
+}
+
+function renderSchedule() {
+  const container = document.getElementById('scheduleContainer');
+  const days = ['周一','周二','周三','周四','周五'];
+  
+  // 收集所有课程，按天分组，并建立时段映射
+  const daysData = days.map((_, idx) => {
+    const day = idx + 1;
+    const coursesOnDay = appData.courses.filter(c => c.day === day);
+    // 建立时段 -> 课程列表映射，先加入所有预设时段
+    const slotMap = new Map();
+    PRESET_SLOTS.forEach(s => {
+      const key = s.start + '-' + s.end;
+      slotMap.set(key, []);
+    });
+    // 将课程放入匹配的时段，如果不匹配任何预设，归入特殊时段
+    coursesOnDay.forEach(c => {
+      const slotKey = c.startTime + '-' + c.endTime;
+      if (slotMap.has(slotKey)) {
+        slotMap.get(slotKey).push(c);
+      } else {
+        // 特殊时段
+        if (!slotMap.has(slotKey)) slotMap.set(slotKey, []);
+        slotMap.get(slotKey).push(c);
+      }
+    });
+    // 排序时段（按开始时间）
+    const sortedSlots = Array.from(slotMap.entries()).sort((a,b) => {
+      const aStart = a[0].split('-')[0];
+      const bStart = b[0].split('-')[0];
+      return timeToMinutes(aStart) - timeToMinutes(bStart);
+    });
+    return { day, sortedSlots };
+  });
+
+  // 构建表格HTML
+  let html = '<table class="schedule-table"><thead><tr><th></th>';
+  days.forEach(d => html += `<th>${d}</th>`);
+  html += '</tr></thead><tbody>';
+  
+  // 获取所有可能的时段行（所有天中出现的时段合并去重排序）
+  const allSlots = new Set();
+  daysData.forEach(d => d.sortedSlots.forEach(([key]) => allSlots.add(key)));
+  const sortedAllSlots = Array.from(allSlots).sort((a,b) => {
+    const aStart = a.split('-')[0];
+    const bStart = b.split('-')[0];
+    return timeToMinutes(aStart) - timeToMinutes(bStart);
+  });
+
+  sortedAllSlots.forEach(slotKey => {
+    html += '<tr><td style="font-weight:500;">' + slotKey + '</td>';
+    daysData.forEach(d => {
+      const slotData = d.sortedSlots.find(([k]) => k === slotKey);
+      let cellContent = '';
+      if (slotData && slotData[1].length > 0) {
+        slotData[1].forEach(c => {
+          const color = getTeacherColor(c.teacher);
+          const isPreset = PRESET_SLOTS.some(s => s.start+'-'+s.end === slotKey);
+          const blockClass = isPreset ? 'course-block' : 'course-block special';
+          cellContent += `<div class="${blockClass}" style="border-left-color:${color}">
+            <strong>${c.name}</strong><br>
+            <span class="teacher-tag" style="background:${color}; margin-top:4px;">${c.teacher}</span>
+          </div>`;
+        });
+      }
+      html += `<td class="schedule-cell">${cellContent}</td>`;
+    });
+    html += '</tr>';
+  });
+  
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// ---------- 课程操作 ----------
+let editingCourseId = null;
+
+function openCourseForm(courseId = null) {
+  editingCourseId = courseId;
+  const modal = document.getElementById('courseModal');
+  const title = document.getElementById('courseModalTitle');
+  if (courseId) {
+    const c = appData.courses.find(c => c.id === courseId);
+    if (!c) return;
+    title.textContent = '编辑课程';
+    document.getElementById('courseName').value = c.name;
+    document.getElementById('courseTeacher').value = c.teacher;
+    document.getElementById('courseDay').value = c.day;
+    document.getElementById('courseStart').value = c.startTime;
+    document.getElementById('courseEnd').value = c.endTime;
+  } else {
+    title.textContent = '添加课程';
+    document.getElementById('courseName').value = '';
+    document.getElementById('courseTeacher').value = '';
+    document.getElementById('courseDay').value = '1';
+    document.getElementById('courseStart').value = '08:00';
+    document.getElementById('courseEnd').value = '08:45';
+  }
+  modal.style.display = 'flex';
+}
+
+function closeCourseModal() {
+  document.getElementById('courseModal').style.display = 'none';
+  editingCourseId = null;
+}
+
+document.getElementById('saveCourseBtn').addEventListener('click', function() {
+  const name = document.getElementById('courseName').value.trim();
+  const teacher = document.getElementById('courseTeacher').value.trim();
+  const day = parseInt(document.getElementById('courseDay').value);
+  const startTime = document.getElementById('courseStart').value;
+  const endTime = document.getElementById('courseEnd').value;
+  if (!name || !teacher) return alert('请填写课程名称和老师');
+  if (timeToMinutes(endTime) <= timeToMinutes(startTime)) return alert('结束时间必须晚于开始时间');
+  
+  pushUndo();
+  if (editingCourseId) {
+    const course = appData.courses.find(c => c.id === editingCourseId);
+    if (course) {
+      course.name = name;
+      course.teacher = teacher;
+      course.day = day;
+      course.startTime = startTime;
+      course.endTime = endTime;
+    }
+  } else {
+    const newCourse = {
+      id: generateId(),
+      name,
+      teacher,
+      day,
+      startTime,
+      endTime
+    };
+    appData.courses.push(newCourse);
+  }
+  saveData();
+  renderAll();
+  closeCourseModal();
+});
+
+function editCourse(id) { openCourseForm(id); }
+
+function deleteCourse(id) {
+  if (!confirm('删除课程将同时移除该课程下所有学生，确定吗？')) return;
+  pushUndo();
+  appData.courses = appData.courses.filter(c => c.id !== id);
+  appData.students = appData.students.filter(s => s.courseId !== id);
+  saveData();
+  renderAll();
+}
+
+// ---------- 学生操作 ----------
+function openStudentForm() {
+  const courseId = document.getElementById('studentCourseSelect').value;
+  if (!courseId) return alert('请先选择课程');
+  document.getElementById('studentModal').style.display = 'flex';
+  document.getElementById('studentName').value = '';
+}
+
+function closeStudentModal() {
+  document.getElementById('studentModal').style.display = 'none';
+}
+
+function saveStudent() {
+  const name = document.getElementById('studentName').value.trim();
+  if (!name) return;
+  const courseId = document.getElementById('studentCourseSelect').value;
+  pushUndo();
+  appData.students.push({ id: generateId(), name, courseId });
+  saveData();
+  renderStudents();
+  closeStudentModal();
+}
+
+function deleteStudent(id) {
+  if (!confirm('确定删除该学生？')) return;
+  pushUndo();
+  appData.students = appData.students.filter(s => s.id !== id);
+  saveData();
+  renderStudents();
+}
+
+function openImportDialog() {
+  const courseId = document.getElementById('studentCourseSelect').value;
+  if (!courseId) return alert('请先选择课程');
+  document.getElementById('importModal').style.display = 'flex';
+  document.getElementById('importNames').value = '';
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').style.display = 'none';
+}
+
+function importStudents() {
+  const courseId = document.getElementById('studentCourseSelect').value;
+  const raw = document.getElementById('importNames').value.trim();
+  if (!raw) return;
+  const names = raw.split('\n').map(n => n.trim()).filter(n => n);
+  pushUndo();
+  names.forEach(name => {
+    appData.students.push({ id: generateId(), name, courseId });
+  });
+  saveData();
+  renderStudents();
+  closeImportModal();
+}
+
+// ---------- Tab 切换 ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const tab = this.dataset.tab;
+    document.getElementById('panel-courses').style.display = tab === 'courses' ? 'block' : 'none';
+    document.getElementById('panel-students').style.display = tab === 'students' ? 'block' : 'none';
+    document.getElementById('panel-schedule').style.display = tab === 'schedule' ? 'block' : 'none';
+    if (tab === 'schedule') renderSchedule();
+  });
+});
+
+// ---------- 全局事件 ----------
+window.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    e.preventDefault();
+    undo();
+  }
+});
+
+// 关闭弹窗背景点击
+window.onclick = function(event) {
+  if (event.target === document.getElementById('courseModal')) closeCourseModal();
+  if (event.target === document.getElementById('studentModal')) closeStudentModal();
+  if (event.target === document.getElementById('importModal')) closeImportModal();
+}
+
+// ---------- 启动 ----------
+loadData();
+renderAll();
+// 初始显示课程面板
+document.getElementById('panel-courses').style.display = 'block';
+document.getElementById('panel-students').style.display = 'none';
+document.getElementById('panel-schedule').style.display = 'none';
+document.querySelector('.tab-btn[data-tab="courses"]').classList.add('active');
+</script>
+</body>
+</html>
