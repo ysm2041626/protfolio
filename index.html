@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>严思敏 · 业务数字化与 AI 工具实践</title>
+<style>
+  :root{
+    --bg: #FAFAF8;
+    --ink: #111111;
+    --ink-soft: #444444;
+    --ink-mute: #8A8A8A;
+    --line: #E5E5E3;
+    --accent: #C2410C;
+    --blue: #0369A1;
+    --green: #15803D;
+    --purple: #7E22CE;
+    --serif: "Georgia", "Times New Roman", "Songti SC", "STSong", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{ font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.8; -webkit-font-smoothing: antialiased; }
+  a{ text-decoration:none; color:inherit; }
+
+  /* ===== 导航 ===== */
+  .nav{ position: fixed; top:0; left:0; right:0; z-index: 100; padding: 22px 0; background: rgba(250,250,248,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid transparent; transition: all 0.4s var(--ease); }
+  .nav.scrolled{ border-bottom-color: var(--line); padding: 16px 0; }
+  .nav-inner{ max-width: 1180px; margin: 0 auto; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; }
+  .nav-logo{ font-family: var(--serif); font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .nav-links{ display: flex; gap: 36px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+  .nav-links a{ color: var(--ink-mute); transition: color 0.25s; font-weight: 500; }
+  .nav-links a:hover{ color: var(--ink); }
+
+  .container{ max-width: 1180px; margin: 0 auto; padding: 0 40px; }
+
+  .reveal{ opacity:0; transform: translateY(30px); transition: opacity 1s var(--ease), transform 1s var(--ease); }
+  .reveal.visible{ opacity:1; transform: translateY(0); }
+
+  /* ===== 封面 ===== */
+  .hero{ padding: 160px 0 100px; }
+  .hero-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  .hero-left h1{ font-family: var(--serif); font-size: 82px; font-weight: 400; line-height: 0.95; letter-spacing: -2px; margin-bottom: 28px; }
+  .hero-left h1 span{ display: block; font-style: italic; color: var(--ink-soft); }
+  .hero-caption{ font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--ink-soft); border-left: 2px solid var(--ink); padding-left: 16px; margin-bottom: 20px; }
+  .hero-intro{ font-size: 13.5px; color: var(--ink-soft); line-height: 1.9; margin-bottom: 24px; max-width: 440px; }
+  .hero-tags{ display:flex; gap: 24px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 40px; }
+  .hero-photo-wrap{ display: flex; align-items: center; gap: 24px; padding-top: 32px; border-top: 1px solid var(--line); }
+  .hero-photo{ width: 100px; height: 100px; border-radius: 50%; overflow: hidden; background: var(--line); flex-shrink: 0; display:flex; align-items:center; justify-content:center; font-size: 10px; color: var(--ink-mute); text-align: center; line-height: 1.4; }
+  .hero-photo img{ width:100%; height:100%; object-fit:cover; }
+  .hero-contact{ font-size: 12px; color: var(--ink-soft); line-height: 1.9; }
+  .hero-contact strong{ font-weight: 600; color: var(--ink); font-family: var(--serif); font-style: italic; font-size: 16px; }
+
+  /* ===== 封面右侧：导航入口卡 ===== */
+  .hero-right{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .entry-card{
+    border-radius: 3px; padding: 20px 18px; cursor: pointer;
+    background: #fff; border: 1px solid var(--line);
+    transition: all 0.4s var(--ease); position: relative; overflow: hidden;
+    display: flex; flex-direction: column; min-height: 200px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .entry-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0,0,0,0.08); }
+  .entry-card:nth-child(1){ min-height: 240px; margin-top: 40px; }
+  .entry-card:nth-child(2){ min-height: 320px; }
+  .entry-card:nth-child(3){ min-height: 260px; margin-top: 60px; }
+  .entry-card:nth-child(4){ min-height: 300px; }
+
+  .entry-card::before{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity 0.3s; }
+  .entry-card:nth-child(1)::before{ background: var(--blue); }
+  .entry-card:nth-child(2)::before{ background: var(--green); }
+  .entry-card:nth-child(3)::before{ background: var(--accent); }
+  .entry-card:nth-child(4)::before{ background: var(--purple); }
+  .entry-card:hover::before{ opacity: 1; }
+
+  .entry-num{ font-family: var(--serif); font-size: 11px; font-style: italic; color: var(--ink-mute); margin-bottom: auto; letter-spacing: 1px;}
+  .entry-title{ font-family: var(--serif); font-size: 18px; line-height: 1.3; margin: 14px 0 8px; letter-spacing: -0.3px; }
+  .entry-desc{ font-size: 11.5px; color: var(--ink-mute); line-height: 1.7; }
+  .entry-cta{ font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-mute); margin-top: 14px; font-weight: 600; transition: color 0.3s; }
+  .entry-card:hover .entry-cta{ color: var(--accent); }
+
+  .entry-card:nth-child(1):hover .entry-title{ color: var(--blue); }
+  .entry-card:nth-child(2):hover .entry-title{ color: var(--green); }
+  .entry-card:nth-child(3):hover .entry-title{ color: var(--accent); }
+  .entry-card:nth-child(4):hover .entry-title{ color: var(--purple); }
+
+  /* ===== 通用区块标题 ===== */
+  .section-label{ font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 16px; font-weight: 600; }
+  .section-title{ font-family: var(--serif); font-size: 56px; font-weight: 400; line-height: 1; letter-spacing: -1px; margin-bottom: 48px; }
+  .section-title i{ font-style: italic; color: var(--ink-soft); }
+
+  /* ===== 关于我 ===== */
+  .about{ padding: 80px 0; border-top: 1px solid var(--line); }
+  .about-grid{ display: grid; grid-template-columns: 1fr 1.4fr; gap: 80px; }
+  .about-left{ font-size: 14px; color: var(--ink-soft); line-height: 2; }
+  .about-left strong{ color: var(--ink); font-family: var(--serif); font-style: italic; font-size: 18px; }
+  .about-right{ display: flex; flex-direction: column; gap: 36px; }
+  .about-item{ border-top: 1px solid var(--line); padding-top: 24px; }
+  .about-item-head{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;}
+  .about-item-head h4{ font-family: var(--serif); font-size: 20px; font-weight: 400; }
+  .about-item-head .meta{ font-size: 11px; letter-spacing: 1px; color: var(--ink-mute); text-transform: uppercase; }
+  .about-item p, .about-item ul{ font-size: 13.5px; color: var(--ink-soft); line-height: 1.9; }
+  .about-item ul{ list-style: none; }
+  .about-item li{ position: relative; padding-left: 18px; margin-bottom: 8px; }
+  .about-item li::before{ content: '—'; position: absolute; left: 0; color: var(--ink-mute); }
+  .about-subtitle { font-size: 12px; letter-spacing: 1px; color: var(--ink-mute); font-weight: 700; margin-bottom: 12px; text-transform: uppercase; border-left: 2px solid var(--ink-mute); padding-left: 8px;}
+
+  /* ===== 作品集 ===== */
+  .works{ padding: 80px 0; border-top: 1px solid var(--line); }
+  .work-item{ display: grid; grid-template-columns: 60px 1fr 1.3fr; gap: 40px; padding: 48px 0; border-bottom: 1px solid var(--line); cursor: pointer; transition: all 0.5s var(--ease); align-items: start; }
+  .work-item:last-child{ border-bottom: none; }
+  .work-item:hover{ padding-left: 20px; }
+  .work-index{ font-family: var(--serif); font-size: 14px; font-style: italic; color: var(--ink-mute); padding-top: 6px; }
+  .work-head h3{ font-family: var(--serif); font-size: 32px; font-weight: 400; line-height: 1.2; margin-bottom: 12px; letter-spacing: -0.5px; }
+  .work-head .role{ font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--ink-mute); font-weight: 600; }
+  .work-body p{ font-size: 14px; color: var(--ink-soft); line-height: 1.9; margin-bottom: 16px; }
+  .work-tags{ display: flex; flex-wrap: wrap; gap: 8px; }
+  .work-tags span{ font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-mute); border: 1px solid var(--line); padding: 5px 12px; border-radius: 2px; }
+  .work-item:hover .work-tags span{ border-color: var(--ink); color: var(--ink); }
+  .work-item:hover .work-head h3{ color: var(--accent); transition: color 0.4s; }
+
+  /* ===== 工作经验 ===== */
+  .experience{ padding: 80px 0; border-top: 1px solid var(--line); }
+  .exp-row{ display: grid; grid-template-columns: 140px 1fr 2.2fr; gap: 40px; padding: 48px 0; border-bottom: 1px solid var(--line); align-items: start; }
+  .exp-row:last-child{ border-bottom: none; }
+  .exp-date{ font-size: 11px; letter-spacing: 2px; color: var(--ink-mute); text-transform: uppercase; padding-top: 6px;}
+  .exp-role h4{ font-family: var(--serif); font-size: 24px; font-weight: 400; margin-bottom: 6px; }
+  .exp-role .sub{ font-size: 13px; letter-spacing: 1px; color: var(--ink-mute); font-style: italic; font-family: var(--serif); }
+  .exp-desc{ font-size: 14px; color: var(--ink-soft); line-height: 1.9; }
+  .exp-desc ul { list-style: none; margin-top: 12px; }
+  .exp-desc li { position: relative; padding-left: 20px; margin-bottom: 8px; }
+  .exp-desc li::before { content: '·'; position: absolute; left: 0; color: var(--accent); font-size: 24px; line-height: 1; top: -2px; }
+
+  /* ===== 证书荣誉 ===== */
+  .honors{ padding: 80px 0; border-top: 1px solid var(--line); }
+  .honors-grid{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 60px; }
+  .honor-item{ display: flex; align-items: baseline; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink-soft); transition: all 0.3s var(--ease); }
+  .honor-item:hover{ color: var(--ink); padding-left: 8px; }
+  .honor-item .dot{ width: 5px; height: 5px; background: var(--ink); border-radius: 50%; flex-shrink: 0; transform: translateY(-2px); }
+
+  /* ===== 联系 ===== */
+  .contact{ padding: 140px 0 100px; border-top: 1px solid var(--line); }
+  .contact h2{ font-family: var(--serif); font-size: 96px; font-weight: 400; line-height: 0.95; letter-spacing: -3px; margin-bottom: 24px; }
+  .contact h2 i{ font-style: italic; color: var(--ink-soft); }
+  .contact-sub{ font-size: 13px; letter-spacing: 2px; color: var(--ink-mute); text-transform: uppercase; margin-bottom: 64px; }
+  .contact-grid{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; border-top: 1px solid var(--line); padding-top: 40px; }
+  .contact-item .label{ font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 8px; font-weight: 600; }
+  .contact-item .val{ font-family: var(--serif); font-size: 17px; color: var(--ink); }
+
+  footer{ padding: 40px 0; text-align: center; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-mute); border-top: 1px solid var(--line); }
+
+  /* ===== 弹窗 ===== */
+  .modal{ display:none; position:fixed; inset:0; background:rgba(17,17,17,0.85); backdrop-filter: blur(8px); z-index:1000; padding: 40px; }
+  .modal.open{ display:flex; animation: fadeIn 0.35s var(--ease); }
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+  .modal-box{ background:#fff; width: min(1280px, 100%); height: 100%; margin: auto; display: flex; flex-direction: column; overflow: hidden; border-radius: 2px; animation: slideUp 0.4s var(--ease); }
+  @keyframes slideUp{ from{transform: translateY(20px); opacity: 0} to{transform: translateY(0); opacity: 1} }
+  .modal-head{ display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; border-bottom: 1px solid var(--line); }
+  .modal-head h3{ font-family: var(--serif); font-size: 22px; font-weight: 400; }
+  .modal-head-actions{ display: flex; gap: 12px; }
+  .btn-outline{ font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 10px 20px; border: 1px solid var(--line); background: transparent; border-radius: 2px; cursor: pointer; color: var(--ink); transition: all 0.3s var(--ease); font-weight: 600; font-family: inherit; }
+  .btn-outline:hover{ background: var(--ink); color: #fff; border-color: var(--ink); }
+  iframe{ flex:1; width: 100%; border: 0; background: #fff; }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 900px){
+    .hero-grid, .about-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero-left h1 { font-size: 56px; }
+    .section-title { font-size: 40px; }
+    .work-item { grid-template-columns: 40px 1fr; gap: 20px; }
+    .work-body { grid-column: 1 / -1; }
+    .exp-row { grid-template-columns: 1fr; gap: 12px; padding: 28px 0; }
+    .honors-grid { grid-template-columns: 1fr; }
+    .contact h2 { font-size: 56px; letter-spacing: -2px; }
+    .contact-grid { grid-template-columns: 1fr; gap: 24px; }
+    .nav-links { display: none; }
+    .container { padding: 0 24px; }
+    .nav-inner { padding: 0 24px; }
+    .modal { padding: 0; }
+    .hero-right { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .entry-card { min-height: 160px !important; margin-top: 0 !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">Yan Simin</div>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#works">Works</a>
+      <a href="#experience">Experience</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<!-- 封面 -->
+<section class="hero container">
+  <div class="hero-grid">
+    <div class="hero-left reveal">
+      <h1>PORT<span>FOLIO</span></h1>
+      <div class="hero-caption">业务数字化 × AI 工具实践</div>
+      <p class="hero-intro">
+        从一线教务到独立搭建系统，用 AI 把重复工作变成自动化流程。
+        擅长把「业务流程」拆解成「可落地的工具」，让排课、学情、沟通都能自动运转。
+      </p>
+      <div class="hero-tags">
+        <span>流程设计</span>
+        <span>AI 工作流</span>
+        <span>数据工具</span>
+      </div>
+      <div class="hero-photo-wrap">
+        <div class="hero-photo">
+          <img src="avatar.png" alt="照片" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <div style="display:none; font-size: 10px; padding: 8px;">avatar.png</div>
+        </div>
+        <div class="hero-contact">
+          <strong>严思敏</strong><br>
+          156-0237-3563<br>
+          微信：Yan4_-
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：4 个导航入口卡 -->
+    <div class="hero-right reveal">
+      <a class="entry-card" href="#about">
+        <div class="entry-num">01 / Education</div>
+        <div class="entry-title">在校经历</div>
+        <div class="entry-desc">华立科技职业技术学院 · 学前教育<br>辩论协会会长 · 幼儿园见习 · 初中班主任助理</div>
+        <div class="entry-cta">查看详情 →</div>
+      </a>
+      <a class="entry-card" href="#works">
+        <div class="entry-num">02 / Works</div>
+        <div class="entry-title">作品集</div>
+        <div class="entry-desc">课程调度工作台 · 个人教师工作台<br>学生课表管理 · AI 助教工作台</div>
+        <div class="entry-cta">点击查看 →</div>
+      </a>
+      <a class="entry-card" href="#experience">
+        <div class="entry-num">03 / Experience</div>
+        <div class="entry-title">工作经验</div>
+        <div class="entry-desc">教务统筹 · 一线教学 · 督学管理<br>从排课到心理辅导的全链路实操</div>
+        <div class="entry-cta">查看详情 →</div>
+      </a>
+      <a class="entry-card" href="#honors">
+        <div class="entry-num">04 / Honors</div>
+        <div class="entry-title">荣誉证书</div>
+        <div class="entry-desc">艺术展演 · 舞蹈教师资格<br>普通话二甲 · 计算机一级</div>
+        <div class="entry-cta">查看详情 →</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- 关于我 -->
+<section id="about" class="about container">
+  <div class="reveal">
+    <div class="section-label">01 / About</div>
+    <h2 class="section-title">关于<i>我</i></h2>
+  </div>
+  <div class="about-grid">
+    <div class="about-left reveal">
+      <strong>严思敏</strong><br><br>
+      具备 AI 数字化落地能力与“教学 + 运营 + 销售”三位一体复合能力。擅长利用 AI 重构教培工作流，自动生成学情报告、优化排课与报表。<br><br>
+      正在从一线教务向 <strong>业务数字化 / AI 工具应用</strong> 方向转型，把自己真实的业务经验，沉淀成能直接解决痛点的工具。
+    </div>
+    <div class="about-right reveal">
+      <div class="about-item">
+        <div class="about-item-head">
+          <h4>广州华立科技职业技术学院</h4>
+          <span class="meta">2022.09 — 2025.06</span>
+        </div>
+        <p>学前教育 · 核心课程：教育学、心理学、教学设计、教育管理</p>
+      </div>
+      <div class="about-item">
+        <div class="about-item-head">
+          <h4>辩论协会 · 会长</h4>
+          <span class="meta">2023.07 — 2024.07</span>
+        </div>
+        <ul>
+          <li>主导策划并落地 2 场校级辩论赛，统筹赛程安排、场地协调与人员分工，覆盖观众超 1000 人次，赛事零失误进行。</li>
+          <li>独立负责赛事资金筹备，通过陌拜与多轮谈判，成功从 0 到 1 拉取 2000 元现金赞助及物资支持。</li>
+        </ul>
+      </div>
+
+      <div class="about-item">
+        <div class="about-item-head">
+          <h4>见习经历</h4>
+          <span class="meta">2023.06 — 2024.06</span>
+        </div>
+        <div class="about-subtitle">副班老师 · 狮宝宝幼儿园</div>
+        <ul style="margin-bottom: 20px;">
+          <li>协助主班老师管理一个 6 人小班和一个 22 人中班，负责日常教学配合、课堂秩序维护与活动组织。</li>
+          <li>针对不同年龄段孩子的认知特点，配合设计并落地多节互动游戏课，帮助孩子快速融入集体生活。</li>
+          <li>与家长保持日常沟通，反馈孩子在园表现，积累了早期家校沟通的实战经验。</li>
+        </ul>
+        <div class="about-subtitle">初中班主任助理 · 华立中英文学校</div>
+        <ul>
+          <li>协助班主任处理班级日常管理事务，包括早读考勤、作业收发、纪律维护等。</li>
+          <li>参与组织主题班会与班级活动，协助处理学生间的矛盾与突发状况。</li>
+          <li>观察并记录学生课堂表现，协助班主任整理学情反馈，为个别学生提供学习建议。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 作品集 -->
+<section id="works" class="works container">
+  <div class="reveal">
+    <div class="section-label">02 / Works</div>
+    <h2 class="section-title">作品<i>集</i></h2>
+  </div>
+  <div id="works-list"></div>
+</section>
+
+<!-- 工作经历 -->
+<section id="experience" class="experience container">
+  <div class="reveal">
+    <div class="section-label">03 / Experience</div>
+    <h2 class="section-title">工作<i>经历</i></h2>
+  </div>
+
+  <div class="exp-row reveal">
+    <div class="exp-date">2026.06 — 2026.09</div>
+    <div class="exp-role">
+      <h4>渔非鱼学馆</h4>
+      <div class="sub">教务</div>
+    </div>
+    <div class="exp-desc">
+      <ul>
+        <li>全面负责校区教室与师资调度，根据老师时间、教室容量、学生排课需求，制定科学排课策略，最大化提升资源利用率。</li>
+        <li>利用 AI 工具辅助老师日常工作，自动生成学情报告，推动续报工作，借助 AI 分析排课数据与自动化处理报表，将排课冲突率降至 0。</li>
+        <li>深度挖掘学生学习痛点，精准匹配课程方案，搭建家校沟通闭环，个人单月业绩达 40 万+。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="exp-row reveal">
+    <div class="exp-date">2025.07 — 2026.05</div>
+    <div class="exp-role">
+      <h4>星驰教育</h4>
+      <div class="sub">教师</div>
+    </div>
+    <div class="exp-desc">
+      <ul>
+        <li>负责小学阶段语文、数学双科教学活动的统筹与实施，独立完成备课、授课与课后辅导全流程。</li>
+        <li>将复杂的教学大纲拆解为每周可执行的教学计划，精准把控教学进度与课堂节奏，确保各阶段教学目标高质量达成。</li>
+        <li>针对不同学习水平的学生，设计分层练习与个性化辅导方案，帮助基础薄弱的学生稳步提升。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="exp-row reveal">
+    <div class="exp-date">2024.08 — 2025.07</div>
+    <div class="exp-role">
+      <h4>文域教育</h4>
+      <div class="sub">督学</div>
+    </div>
+    <div class="exp-desc">
+      <ul>
+        <li>在初三高压备考阶段，协助处理多起学生突发心理危机事件，通过共情沟通与情绪疏导有效安抚学生情绪，建立信任关系，保障了教学秩序的平稳运行。</li>
+        <li>全面负责初中部教务行政统筹，包括排课安排、学籍管理及各类数据报表的精准输出，确保教务运转高效有序。</li>
+        <li>在兼顾行政事务的同时，有效协调班主任与科任老师资源，搭建学生管理合力，推动教学与管理双线并行。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 证书荣誉 -->
+<section id="honors" class="honors container">
+  <div class="reveal">
+    <div class="section-label">04 / Honors</div>
+    <h2 class="section-title">证书与<i>荣誉</i></h2>
+  </div>
+  <div class="honors-grid reveal">
+    <div class="honor-item"><span class="dot"></span>第 7 届广东大学生艺术展演一等奖</div>
+    <div class="honor-item"><span class="dot"></span>第 3 届粤港澳大湾区大学生艺术节二等奖</div>
+    <div class="honor-item"><span class="dot"></span>舞蹈教师资格证一到三级</div>
+    <div class="honor-item"><span class="dot"></span>普通话国家二级甲等证书</div>
+    <div class="honor-item"><span class="dot"></span>计算机考试一级证书</div>
+  </div>
+</section>
+
+<!-- 联系 -->
+<section id="contact" class="contact container">
+  <div class="reveal">
+    <h2>LET'S <i>CONNECT.</i></h2>
+    <div class="contact-sub">期待与您进一步交流</div>
+  </div>
+  <div class="contact-grid reveal">
+    <div class="contact-item">
+      <div class="label">Phone</div>
+      <div class="val">156-0237-3563</div>
+    </div>
+    <div class="contact-item">
+      <div class="label">Email</div>
+      <div class="val">3310368979@qq.com</div>
+    </div>
+    <div class="contact-item">
+      <div class="label">WeChat</div>
+      <div class="val">Yan4_-</div>
+    </div>
+  </div>
+</section>
+
+<footer>© 2025 Yan Simin · Portfolio</footer>
+
+<!-- 弹窗 -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="mtitle"></h3>
+      <div class="modal-head-actions">
+        <a id="mnew" href="#" target="_blank" rel="noopener" class="btn-outline">Open New</a>
+        <button id="mclose" class="btn-outline" type="button">Close</button>
+      </div>
+    </div>
+    <iframe id="mframe" src="about:blank" title="预览"></iframe>
+  </div>
+</div>
+
+<script>
+// ===== 滚动渐入 =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===== 导航栏 =====
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 40) nav.classList.add('scrolled');
+  else nav.classList.remove('scrolled');
+});
+
+// ===== 作品数据 =====
+const projects = [
+  {
+    role: "教务端", title: "课程调度工作台",
+    desc: "机构有好几个教务，老师时间和教室经常对不上，沟通滞后就会撞课。我把这件事做成了系统：自动排课 + 冲突检测，教师、教室、班级三条线同时校验，冲突能一键修复，也能手动拖拽调整。",
+    tags: ["排课算法", "冲突检测", "拖拽交互"], file: "source.html"
+  },
+  {
+    role: "教师端", title: "个人教师工作台",
+    desc: "基于我自己做个人老师的经验，把老师日常真正会用到的东西收在一个页面里：课表、待办、校历、备课、学生名册、家校沟通，以及一个可自定义的常用工具入口。",
+    tags: ["课表", "备课", "家校沟通"], file: "teacher.html"
+  },
+  {
+    role: "学生 / 家长端", title: "学生课表管理",
+    desc: "有些孩子课多又杂，家长自己也会记混，想安排别的事时又怕撞课。这个是给几位相熟的家长做的：一眼看清孩子有什么课，课程、学生、周课表三个视角切换。",
+    tags: ["家长视角", "课表视图", "批量导入"], file: "student.html"
+  },
+  {
+    role: "助教端", title: "AI 助教工作台",
+    desc: "观察助教日常工作后整理的。成绩分析维度更细，能看到单次、多次、个人三个层次；错题按知识点归类；还能一键生成举一反三的练习题和学习计划，并导出家长会沟通稿。",
+    tags: ["成绩分析", "错题分析", "举一反三"], file: "assistant.html"
+  }
+];
+
+// ===== 渲染作品集列表 =====
+const worksList = document.getElementById('works-list');
+projects.forEach((p, i) => {
+  const item = document.createElement('article');
+  item.className = 'work-item reveal';
+  item.style.transitionDelay = `${i * 0.05}s`;
+  item.innerHTML = `
+    <div class="work-index">0${i + 1}</div>
+    <div class="work-head">
+      <div class="role">${p.role}</div>
+      <h3>${p.title}</h3>
+    </div>
+    <div class="work-body">
+      <p>${p.desc}</p>
+      <div class="work-tags">${p.tags.map(t => `<span>${t}</span>`).join('')}</div>
+    </div>
+  `;
+  item.addEventListener('click', () => openProject(p));
+  worksList.appendChild(item);
+  observer.observe(item);
+});
+
+// ===== 弹窗逻辑 =====
+const modal = document.getElementById('modal');
+const mtitle = document.getElementById('mtitle');
+const mframe = document.getElementById('mframe');
+const mnew = document.getElementById('mnew');
+
+function openProject(p) {
+  mtitle.textContent = p.title;
+  mnew.href = p.file;
+  mframe.src = p.file;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  modal.classList.remove('open');
+  mframe.src = 'about:blank';
+  document.body.style.overflow = '';
+}
+document.getElementById('mclose').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
