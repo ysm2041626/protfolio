@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>智能客服 Demo</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#eef2ff,#f8fafc 45%,#ecfdf5);padding:20px;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  .app{width:420px;max-width:100%;height:740px;max-height:92vh;background:#fff;border-radius:22px;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,.14)}
+  .header{padding:16px 20px;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;
+    display:flex;align-items:center;gap:12px}
+  .header .logo{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);
+    display:grid;place-items:center;font-size:18px}
+  .header h1{font-size:15px;margin:0;font-weight:600}
+  .header p{margin:3px 0 0;font-size:12px;opacity:.85}
+  .chat{flex:1;overflow-y:auto;padding:16px;background:#f8fafc;display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;gap:8px;align-items:flex-start}
+  .row.user{flex-direction:row-reverse}
+  .avatar{width:32px;height:32px;flex:0 0 32px;border-radius:50%;display:grid;place-items:center;
+    font-size:13px;color:#fff;font-weight:600}
+  .row.bot .avatar{background:linear-gradient(135deg,#4f46e5,#2563eb)}
+  .row.user .avatar{background:#94a3b8}
+  .bubble{max-width:78%;padding:10px 14px;border-radius:14px;border-top-left-radius:4px;
+    background:#fff;color:#1e293b;font-size:14px;line-height:1.7;border:1px solid #e2e8f0;
+    white-space:pre-wrap;word-break:break-word;animation:pop .22s ease-out}
+  .row.user .bubble{background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;border:none;
+    border-top-left-radius:14px;border-top-right-radius:4px}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .typing{display:flex;gap:4px;padding:14px}
+  .typing span{width:6px;height:6px;border-radius:50%;background:#94a3b8;animation:blink 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.2s}
+  .typing span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+  .chips{display:flex;gap:8px;padding:10px 12px;overflow-x:auto;background:#fff;border-top:1px solid #f1f5f9}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;white-space:nowrap;padding:6px 12px;border-radius:999px;font-size:12px;
+    background:#eff6ff;color:#2563eb;border:1px solid #dbeafe;cursor:pointer}
+  .chip:hover{background:#dbeafe}
+  .inputbar{display:flex;gap:8px;padding:12px;background:#fff;border-top:1px solid #f1f5f9}
+  .inputbar input{flex:1;border:1px solid #e2e8f0;border-radius:12px;padding:11px 14px;font-size:14px;
+    outline:none;background:#f8fafc;font-family:inherit}
+  .inputbar input:focus{border-color:#93c5fd;background:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+  .inputbar button{border:none;border-radius:12px;padding:0 20px;font-size:14px;font-weight:600;
+    color:#fff;background:linear-gradient(135deg,#2563eb,#4f46e5);cursor:pointer}
+  .inputbar button:active{transform:scale(.97)}
+  .extra-btn{margin-top:10px;padding:7px 13px;border-radius:8px;font-size:13px;cursor:pointer;
+    background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-family:inherit}
+  .extra-btn.ok{background:#ecfdf5;color:#059669;border-color:#a7f3d0}
+  .extra-btn:disabled{opacity:.45;cursor:default}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">🛍️</div>
+    <div>
+      <h1>小助手 · 智能客服</h1>
+      <p>在线中，通常秒回</p>
+    </div>
+  </div>
+  <div class="chat" id="chat"></div>
+  <div class="chips" id="chips"></div>
+  <div class="inputbar">
+    <input id="input" placeholder="请输入您的问题…" autocomplete="off">
+    <button id="send">发送</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ① 知识库
+   售前：answer = 先反问采集需求；followup = 顾客告知后给建议
+   售后：answer = 先安抚+要凭证；followup = 核验通过给方案
+   ============================================================ */
+const KB = [
+  /* ---------- 售前 ---------- */
+  {
+    id:'stock',
+    patterns:['有货吗','有现货吗','还有库存吗','卖完了吗','什么时候补货','缺货吗','还有吗','库存'],
+    keywords:['现货','库存','有货','补货','缺货'],
+    answer:'亲，这款部分规格有现货~ 为了帮您查准，方便告诉我：\n① 想要的颜色/型号\n② 需要的规格（容量/尺码/数量）\n\n我帮您查一下实时库存；如果刚好缺货，可以帮您登记到货提醒，补货第一时间通知您，不用您天天来刷~',
+    followupLabel:'✅ 我已选好规格',
+    followup:'已为您查到：您选的规格有现货 ✅\n今天下单，48 小时内发出。需要我把商品链接发您，还是直接帮您备注优先发货？'
+  },
+  {
+    id:'material',
+    patterns:['什么材质','成分是什么','含什么成分','适合什么肤质','适合什么人用','敏感肌能用吗','孕妇能用吗','材质','成分','适用人群'],
+    keywords:['材质','成分','肤质','敏感肌','孕妇','适合'],
+    answer:'为了给您更准的建议，想先了解几点，避免推荐错：\n① 主要给谁用、什么肤质/人群\n② 有没有已知过敏史或要避开的成分\n③ 打算用在什么场景、每天大概用几次\n\n您告诉我后，我把成分表和适用说明发您，帮您一起判断合不合适~',
+    followupLabel:'✅ 已告知使用情况',
+    followup:'根据您说的情况，这款的成分与适用人群是匹配的 ✅\n我把详细成分表和使用注意事项发您。如果您属于敏感肌，建议先在耳后/手腕小面积试用 24 小时，无不适再正常使用，更稳妥~'
+  },
+  {
+    id:'recommend',
+    patterns:['推荐哪款','选哪个好','哪款适合我','有什么推荐','这两款区别','买哪个','哪个好','怎么选'],
+    keywords:['推荐','选哪个','哪款','区别','哪个好'],
+    answer:'这两款各有侧重，为了推荐得更准，先问您三个问题：\n① 预算大概多少\n② 主要用在什么场景\n③ 更看重 A 还是 B（比如性价比 / 效果 / 便携）\n\n您说一下，我帮您做个对比，选对的比选贵的更重要~',
+    followupLabel:'✅ 已说明需求',
+    followup:'结合您的需求，我更推荐「XXX」这款 ✅\n理由：更贴合您的使用场景和预算，上手门槛低。\n另一款更适合……的人群。如果您还想看细节对比，我可以把两款区别整理成小表格发您~'
+  },
+  {
+    id:'size',
+    patterns:['尺码怎么选','我该买什么码','偏大还是偏小','尺码表','建议买多大','选哪个码','穿多大'],
+    keywords:['尺码','码数','偏大','偏小','身高体重','穿多大'],
+    answer:'亲，选码建议先看您的身材数据，我帮您推荐更准：\n① 身高、体重\n② 平时穿多大码（其他品牌也行）\n③ 喜欢修身还是宽松\n\n您把这几项告诉我，我对照尺码表给您建议。我们这款是标准码，介于两个码之间建议选大一码~',
+    followupLabel:'✅ 已告知身高体重',
+    followup:'按您给的数据，建议选 XX 码 ✅\n这款是标准版型，您这个数据穿 XX 码合身；想宽松一点可以选大一码。\n收到后不合适也支持 7 天无理由换码，放心拍~'
+  },
+  {
+    id:'authentic',
+    patterns:['是正品吗','正品保障','有授权吗','能专柜验货吗','保质期多久','生产日期','是不是假货','正品'],
+    keywords:['正品','授权','假货','保质期','生产日期','验货'],
+    answer:'我们是品牌官方授权店铺，支持专柜/官网验货，每件商品带防伪码可查，假一赔十 ✅\n\n关于保质期和生产日期：方便告诉我您要的规格吗？我帮您查当前批次的具体日期；需要的话也可以把授权书和质检报告发您留存~',
+    followupLabel:'✅ 查看当前批次',
+    followup:'已为您查到当前批次 ✅\n生产日期和保质期均在有效期内，距离到期还有较长时间，可放心使用。\n防伪码可在品牌官网验证；授权书和质检报告我这边可以发给您留存~'
+  },
+  {
+    id:'color',
+    patterns:['有色差吗','实物和图片一样吗','颜色准吗','能看实拍吗','实物什么样','色差'],
+    keywords:['色差','实物','实拍','颜色'],
+    answer:'图片是我们实拍的，但不同屏幕显示会有轻微色差，这点先跟您说明~ 方便告诉我您最关心哪个颜色吗？\n\n我把该颜色的自然光实拍图和视频发您，您看过实物效果再决定，避免收到后和预期有落差~',
+    followupLabel:'✅ 想看实拍图',
+    followup:'已把您关心的颜色实拍图和自然光视频发您 ✅\n实物以视频为准。如果您还是拿不准，告诉我平时的颜色偏好，我帮您选更稳妥的那款~'
+  },
+  {
+    id:'gift',
+    patterns:['有赠品吗','送什么','套装包含什么','礼盒装','有没有礼物','赠品','套装'],
+    keywords:['赠品','送什么','套装','礼盒','礼物'],
+    answer:'这款套装包含：主商品 + ……（配件/赠品清单）🎁\n\n想跟您确认一下要哪个套装版本？不同版本赠品会有差异，我帮您核对清楚，避免收到后和预期不一致~',
+    followupLabel:'✅ 已核对版本',
+    followup:'已为您核对套装清单 ✅\n您选的版本包含……，赠品随主商品一起发出。\n如果有单独的赠品活动，我会在订单备注里帮您标上，确保不遗漏~'
+  },
+  {
+    id:'presale',
+    patterns:['是预售吗','预售多久','什么时候开售','定金能退吗','尾款时间','预售'],
+    keywords:['预售','定金','尾款','开售'],
+    answer:'这款是预售款，规则是：定金…… / 尾款时间…… / 预计发货……\n\n想先确认一下：您能接受这个发货时间吗？如果着急用，我可以帮您推荐有现货的替代款，免得耽误您~',
+    followupLabel:'✅ 接受预售时间',
+    followup:'已为您登记预售 ✅\n尾款开售前我会提醒您，预计发货时间……\n如果期间有现货提前释放，我会第一时间通知您~'
+  },
+  {
+    id:'coupon',
+    patterns:['优惠券怎么用','有优惠吗','能用券吗','怎么领券','有没有活动','什么时候打折','能便宜点吗'],
+    keywords:['优惠','券','活动','折扣','便宜','打折'],
+    answer:'目前店铺有满 199 减 30 的活动，商品页点「领券」即可 🎁\n\n想帮您算得更划算：您打算买哪几件？大概多少金额？我帮您看看怎么凑单最省，或者有没有更适合的套装~',
+    followupLabel:'✅ 已告知购物清单',
+    followup:'帮您算过了 ✅\n按您的清单，凑到 199 可以减 30，实际到手更划算。\n注意优惠券不可叠加、不与特价商品同享，下单前我再帮您确认一遍~'
+  },
+  {
+    id:'invoice',
+    patterns:['能开发票吗','怎么开发票','发票怎么开','要发票'],
+    keywords:['发票','开票'],
+    answer:'可以的~ 下单时在结算页填写发票信息，或下单后联系客服提供抬头和税号。电子发票会在发货后 3 个工作日内发送到您的邮箱 🧾'
+  },
+
+  /* ---------- 售前 · 物流相关 ---------- */
+  {
+    id:'ship',
+    patterns:['什么时候发货','多久发货','发货时间','几天能发','今天能发货吗','下单多久发货','什么时候能发出'],
+    keywords:['发货','发出'],
+    answer:'亲，现货商品付款后 48 小时内发出（节假日顺延）哦~ 如果着急，可以下单时备注“加急”，我们会优先为您安排 🙌'
+  },
+  {
+    id:'freight',
+    patterns:['包邮吗','运费多少','邮费怎么算','满多少包邮','要运费吗'],
+    keywords:['包邮','运费','邮费'],
+    answer:'单笔订单满 99 元包邮（偏远地区除外），不满 99 元收取 8 元运费。新疆、西藏等地区运费 15 元起，具体以结算页显示为准 🚚'
+  },
+  {
+    id:'pay',
+    patterns:['支付失败','付不了款','怎么付款','付款方式'],
+    keywords:['支付','付款'],
+    answer:'支持微信、支付宝、银行卡付款。如果支付失败，建议更换支付方式或稍后重试；若已扣款但订单未生成，请联系我帮您核实 💳'
+  },
+  {
+    id:'address',
+    patterns:['地址填错了','能改地址吗','修改收货地址','地址写错了'],
+    keywords:['改地址','收货地址'],
+    answer:'未发货前可以修改地址，请尽快把「订单号 + 正确地址」发给我。如果已经发货，需要您联系快递公司修改派送地址哦 ⚠️'
+  },
+
+  /* ---------- 售后 ---------- */
+  {
+    id:'missing',
+    patterns:['漏发了','少发了一件','少件','少了一个','只收到一件','数量不对','缺件','没收到那件','怎么少东西'],
+    keywords:['漏发','少发','少件','缺件','数量不对','少东西'],
+    answer:'非常抱歉出现少件的情况，让您白等了，我们马上帮您核实 🙏\n\n为了尽快处理，麻烦您提供：\n① 快递面单照片（能看清单号）\n② 包裹外箱和内包装照片\n③ 开箱视频，或所有商品的平铺合照（能看清实际数量）\n\n核验无误后，我们会立即为您补发或退款（二选一），运费由我们承担，不用您多跑一趟。',
+    followupLabel:'📎 凭证已提供',
+    followup:'凭证已收到，核验通过 ✅\n\n处理方式请您选择：\n① 补发：今天内安排出库，单号出来后第一时间发您\n② 退款：1-3 个工作日退回原支付账户\n\n给您添麻烦了，非常抱歉，也谢谢您的配合 🙏'
+  },
+  {
+    id:'quality',
+    patterns:['东西坏了','有质量问题','商品破损','和描述不符','有瑕疵','坏了','裂了','做工差','破损','变形','掉色','用不了'],
+    keywords:['质量','破损','瑕疵','不符','坏了','裂','掉色'],
+    answer:'真的很抱歉让您收到这样的商品，换作是我也会不开心 🙏 您先别急，我们按流程帮您处理。\n\n麻烦您提供：\n① 问题部位的特写照片或视频\n② 商品整体照片（含吊牌/包装/批号）\n③ 订单号\n\n核验确认是质量问题后，我们为您安排换货/补发/退款，来回运费都由我们承担。',
+    followupLabel:'📎 照片已提供',
+    followup:'已核实属于商品质量问题 ✅\n\n为您安排：\n① 优先换货/补发，今天内出库\n② 或直接退款，1-3 个工作日到账\n运费我们承担，寄回件可以预约上门取件。\n\n再次为这次体验道歉，品控那边我们已经同步反馈了 🙏'
+  },
+  {
+    id:'allergy',
+    patterns:['用了过敏','过敏','用完脸红','红肿','刺痛','瘙痒','起疹子','不良反应','用了不舒服','皮肤痒','吃了不舒服','用了之后不舒服','起了红点','发痒'],
+    keywords:['过敏','红肿','刺痛','痒','疹','不良反应','不舒服','红点'],
+    answer:'非常理解您的担心，先关心一下您的身体状况：如果症状明显或持续加重，建议先去正规医院就诊，别硬扛 🙏 我们是客服，不能做医疗判断，但可以把产品成分和批号资料提供给您，方便医生参考。\n\n为了帮您核实处理，麻烦提供：\n① 产品名称 + 批号/生产日期（在瓶身或包装上）\n② 不适部位的照片或视频\n③ 使用的时间、频次和用量\n④ 近期是否同时用了其他产品，以往是否有过敏史\n\n信息齐全后我们第一时间核验，并按平台规则为您安排退款/换货及后续处理，不会让您承担损失。',
+    followupLabel:'📎 信息已提供',
+    followup:'已收到您提供的信息，正在为您登记核验 ✅\n\n处理方案：\n① 先为您办理该订单的退款/换货（二选一，运费我们承担）\n② 产品批号已同步品控部门复核，同类反馈我们会重点关注\n③ 如需就医，我们可以把产品成分和批号资料发给您，方便您给医生参考\n\n再次为给您带来的不适说声抱歉，后续有任何情况随时找我 🙏'
+  },
+  {
+    id:'refund',
+    patterns:['怎么退货','我要退货','如何退款','退款要多久','不喜欢能退吗','七天无理由','怎么申请售后'],
+    keywords:['退货','退款','售后','无理由'],
+    answer:'支持 7 天无理由退换货（不影响二次销售，吊牌包装完整）。在「我的订单」点击「申请售后」即可，我们收到并验货后 1-3 个工作日退款到原支付账户 💰'
+  },
+  {
+    id:'exchange',
+    patterns:['怎么换货','尺码不合适能换吗','换一个','换货流程','颜色发错了'],
+    keywords:['换货','换尺码','换一个'],
+    answer:'换货同样走「申请售后 → 换货」，选好需要的尺码/颜色，我们收到寄回商品后会尽快为您重新发出。换货运费：质量问题我们承担，个人原因需自理哦~'
+  },
+  {
+    id:'logistics',
+    patterns:['我的快递到哪了','怎么查物流','物流信息','快递单号','查快递','什么时候能到'],
+    keywords:['物流','快递','单号','到哪'],
+    answer:'您可以在「我的订单 → 查看物流」中实时查看进度。如果物流超过 48 小时没更新，把订单号发我，我帮您催一下快递公司 📦'
+  },
+  {
+    id:'cancel',
+    patterns:['取消订单','怎么取消','不想要了','修改订单'],
+    keywords:['取消'],
+    answer:'未发货的订单可以在「我的订单」中直接取消，款项 1-3 个工作日退回。已发货的订单需要走退货流程哦~'
+  },
+
+  /* ---------- 通用 ---------- */
+  {
+    id:'greet',
+    patterns:['你好','在吗','有人吗','客服在不在','hi','hello','您好'],
+    keywords:[],
+    answer:'您好呀，我是智能客服小助手 😊 买前想了解商品、材质、尺码、库存，或者售后有少件、破损、用后不适，都可以直接问我~'
+  },
+  {
+    id:'human',
+    patterns:['转人工','人工客服','找人工','客服电话','我要投诉'],
+    keywords:['人工','投诉'],
+    answer:'正在为您转接人工客服，请稍等…（工作时间 9:00-21:00，非工作时间请留言，我们会尽快回复您）'
+  }
+];
+
+/* ============================================================
+   ② 匹配算法：中文双字切分 + Dice 相似度 + 关键词加权
+   ============================================================ */
+function normalize(s){
+  return (s||'').toLowerCase()
+    .replace(/[\s，。！？、,.!?~～:：;；"'“”‘’()（）\[\]【】<>《》\-—_/\\]/g,'');
+}
+function bigrams(s){
+  const set = new Set();
+  for(let i=0;i<s.length-1;i++) set.add(s.slice(i,i+2));
+  if(s.length===1) set.add(s);
+  return set;
+}
+function dice(a,b){
+  const A = bigrams(a), B = bigrams(b);
+  if(!A.size || !B.size) return 0;
+  let inter = 0;
+  for(const x of A) if(B.has(x)) inter++;
+  return 2*inter/(A.size+B.size);
+}
+function findBestAnswer(text){
+  const q = normalize(text);
+  if(!q) return null;
+  let best = {score:0, item:null};
+  for(const item of KB){
+    let s = 0;
+    for(const p of item.patterns){
+      const v = dice(q, normalize(p));
+      if(v > s) s = v;
+    }
+    let hit = 0;
+    for(const k of (item.keywords||[])){
+      if(q.includes(normalize(k))) hit++;
+    }
+    if(hit) s = Math.min(1, s + 0.25 + 0.08*(hit-1));
+    if(s > best.score) best = {score:s, item};
+  }
+  return best.score >= 0.30 ? best : null;
+}
+
+/* ============================================================
+   ③ 聊天界面逻辑
+   ============================================================ */
+const chatEl  = document.getElementById('chat');
+const inputEl = document.getElementById('input');
+
+function scrollBottom(){ chatEl.scrollTop = chatEl.scrollHeight; }
+
+function addMsg(text, who, opts){
+  opts = opts || {};
+  const row = document.createElement('div');
+  row.className = 'row ' + who;
+  const av = document.createElement('div');
+  av.className = 'avatar';
+  av.textContent = who === 'bot' ? '客' : '我';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+
+  // 售前「已告知需求」 / 售后「凭证已提供」 → 给建议或方案
+  if(opts.followup){
+    const btn = document.createElement('button');
+    btn.className = 'extra-btn ok';
+    btn.textContent = opts.followupLabel || '✅ 已告知';
+    btn.onclick = function(){
+      btn.disabled = true;
+      btn.textContent = '已提交';
+      const t = addTyping();
+      setTimeout(function(){
+        t.remove();
+        addMsg(opts.followup, 'bot');
+      }, 900);
+    };
+    bubble.appendChild(btn);
+  }
+
+  // 转人工
+  if(opts.extra){
+    const btn = document.createElement('button');
+    btn.className = 'extra-btn';
+    btn.textContent = '转人工客服';
+    btn.onclick = function(){
+      btn.disabled = true;
+      btn.textContent = '已转接';
+      setTimeout(function(){
+        addMsg('人工客服「小美」已接入，您好，请问有什么可以帮您？','bot');
+      }, 800);
+    };
+    bubble.appendChild(btn);
+  }
+
+  row.appendChild(av);
+  row.appendChild(bubble);
+  chatEl.appendChild(row);
+  scrollBottom();
+}
+
+function addTyping(){
+  const row = document.createElement('div');
+  row.className = 'row bot';
+  row.innerHTML = '<div class="avatar">客</div>' +
+                  '<div class="bubble typing"><span></span><span></span><span></span></div>';
+  chatEl.appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+function send(text){
+  text = (text || '').trim();
+  if(!text) return;
+  addMsg(text, 'user');
+  inputEl.value = '';
+  const typing = addTyping();
+  setTimeout(function(){
+    typing.remove();
+    const res = findBestAnswer(text);
+    if(res){
+      addMsg(res.item.answer, 'bot', {
+        followup: res.item.followup,
+        followupLabel: res.item.followupLabel
+      });
+    }else{
+      addMsg('抱歉，这个问题我暂时没找到答案 😢 您可以换个说法，或者点击下面的按钮转接人工客服~', 'bot', {extra:true});
+    }
+  }, 450 + Math.random()*400);
+}
+
+document.getElementById('send').addEventListener('click', function(){ send(inputEl.value); });
+inputEl.addEventListener('keydown', function(e){
+  if(e.key === 'Enter') send(inputEl.value);
+});
+
+/* 快捷问题：售前 + 售后都有入口 */
+const QUICK = ['有现货吗','什么材质','推荐哪款','尺码怎么选','是正品吗','漏发了','有质量问题','用了过敏','转人工'];
+const chipsEl = document.getElementById('chips');
+QUICK.forEach(function(q){
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.textContent = q;
+  b.onclick = function(){ send(q); };
+  chipsEl.appendChild(b);
+});
+
+/* 开场白 */
+addMsg('您好，我是本店的智能客服小助手 😊\n买前想了解商品、材质成分、尺码、库存、正品保障，我会先问您几个小问题，再给准确建议；售后有少件、破损、用后不适，我会先帮您登记核验，再给处理方案~', 'bot');
+</script>
+</body>
+</html>
